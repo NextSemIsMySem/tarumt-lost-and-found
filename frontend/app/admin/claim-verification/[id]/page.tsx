@@ -10,82 +10,59 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import Image from "next/image"
 
-// Mock data for found items and claims
-const mockData = {
-  1: {
+const claimVerificationData = {
+  "1": {
     item: {
-      id: 1,
       name: "Blue Water Bottle",
       location: "Library",
-      dateFound: "2024-01-10",
-      description: "A blue insulated water bottle found on the second floor study area near the window seats.",
+      dateFound: "2024-01-15",
       image: "/blue-water-bottle.jpg",
-      reportedBy: "John Smith",
-      reporterId: "2020012345",
+      description: "A blue stainless steel water bottle found in the library reading area.",
+      reportedBy: "Sarah Lee",
+      reporterId: "21WMR11111",
     },
     claim: {
-      claimantName: "Sarah Johnson",
-      studentId: "2021045678",
-      phoneNumber: "012-345-6789",
+      claimantName: "Alex Johnson",
+      studentId: "21WMR98765",
+      phoneNumber: "+60 12-345 6789",
       proofDescription:
-        "The bottle has a small dent on the bottom left side and my name 'Sarah J.' written on the cap in permanent marker. I lost it in the library on January 10th during my study session.",
+        "It's a blue Hydro Flask with a dent on the bottom. I bought it last month at the campus bookstore.",
     },
   },
-  2: {
+  "2": {
     item: {
-      id: 2,
-      name: "Black Leather Wallet",
-      location: "Student Center",
-      dateFound: "2024-01-12",
-      description: "Black leather bifold wallet found near the food court area. Contains several cards.",
-      image: "/black-leather-wallet.jpg",
-      reportedBy: "Alice Wong",
-      reporterId: "2021098765",
-    },
-    claim: {
-      claimantName: "Michael Chen",
-      studentId: "2022012345",
-      phoneNumber: "012-987-6543",
-      proofDescription:
-        "The wallet contains my student ID card, a photo of my family, and a receipt from the campus bookstore dated January 12th. It's a bifold wallet with brown stitching on the edges.",
-    },
-  },
-  3: {
-    item: {
-      id: 3,
-      name: "Red Backpack",
-      location: "Cafeteria",
-      dateFound: "2024-01-08",
-      description: "Red Nike backpack with multiple compartments found under table near the entrance.",
-      image: "/red-backpack.png",
-      reportedBy: "David Lee",
-      reporterId: "2022045678",
-    },
-    claim: {
-      claimantName: "Emily Tan",
-      studentId: "2021098765",
-      phoneNumber: "016-234-5678",
-      proofDescription:
-        "My backpack has a keychain of a small panda attached to the zipper and contains my notebook with my name on the first page. The front pocket has a small tear near the bottom.",
-    },
-  },
-  4: {
-    item: {
-      id: 4,
       name: "Silver Laptop",
-      location: "Lab Room 301",
-      dateFound: "2024-01-11",
-      description: "MacBook Pro silver laptop found on desk in the computer lab after closing hours.",
+      location: "Study Room 3",
+      dateFound: "2024-01-17",
       image: "/silver-laptop.jpg",
-      reportedBy: "Maria Garcia",
-      reporterId: "2023012345",
+      description: "Silver laptop found left in Study Room 3 after closing hours.",
+      reportedBy: "David Lim",
+      reporterId: "21WMR44444",
     },
     claim: {
-      claimantName: "David Wong",
-      studentId: "2023056789",
-      phoneNumber: "017-876-5432",
+      claimantName: "Rachel Wong",
+      studentId: "21WMR11223",
+      phoneNumber: "+60 11-234 5678",
       proofDescription:
-        "The laptop is a MacBook Pro with a distinctive scratch on the top cover and has my name engraved on the bottom. The serial number is C02XY1234567.",
+        "MacBook Pro 13-inch, has a 'TAR UMT' sticker on the lid and my initials 'RW' engraved on the bottom.",
+    },
+  },
+  "3": {
+    item: {
+      name: "Black Leather Wallet",
+      location: "Gym",
+      dateFound: "2024-01-14",
+      image: "/black-leather-wallet.jpg",
+      description: "Black leather wallet found in the gym locker room.",
+      reportedBy: "Emily Wong",
+      reporterId: "21WMR33333",
+    },
+    claim: {
+      claimantName: "Tom Lee",
+      studentId: "21WMR44556",
+      phoneNumber: "+60 16-789 1234",
+      proofDescription:
+        "Black leather wallet containing my student ID card and driver's license under the name Tom Lee.",
     },
   },
 }
@@ -95,7 +72,7 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
   const [rationale, setRationale] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const data = mockData[params.id as keyof typeof mockData]
+  const data = claimVerificationData[params.id as keyof typeof claimVerificationData]
 
   if (!data) {
     return (
@@ -194,7 +171,7 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
                     <p className="text-sm text-foreground">
                       <span className="font-medium">Reported By:</span> {item.reportedBy}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       <span className="font-medium">Student ID:</span> {item.reporterId}
                     </p>
                   </div>

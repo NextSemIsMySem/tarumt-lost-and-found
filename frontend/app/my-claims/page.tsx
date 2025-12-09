@@ -4,7 +4,7 @@ import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
 import { useState } from "react"
 
 type ClaimStatus = "Pending" | "Approved" | "Rejected"
@@ -16,38 +16,15 @@ interface Claim {
   status: ClaimStatus
 }
 
-export default function MyClaimsPage() {
-  const [claims, setClaims] = useState<Claim[]>([
-    {
-      id: "1",
-      itemName: "Blue Water Bottle",
-      dateClaimed: "2024-01-15",
-      status: "Pending",
-    },
-    {
-      id: "2",
-      itemName: "Red Backpack",
-      dateClaimed: "2024-01-14",
-      status: "Approved",
-    },
-    {
-      id: "3",
-      itemName: "Black Leather Wallet",
-      dateClaimed: "2024-01-13",
-      status: "Rejected",
-    },
-    {
-      id: "4",
-      itemName: "Silver Laptop",
-      dateClaimed: "2024-01-12",
-      status: "Pending",
-    },
-  ])
+const studentClaimsData: Claim[] = [
+  { id: "1", itemName: "Blue Water Bottle", dateClaimed: "2024-01-20", status: "Pending" },
+  { id: "2", itemName: "Red Backpack", dateClaimed: "2024-01-19", status: "Approved" },
+  { id: "3", itemName: "Black USB Drive", dateClaimed: "2024-01-18", status: "Rejected" },
+  { id: "4", itemName: "Green Notebook", dateClaimed: "2024-01-17", status: "Pending" },
+]
 
-  const handleEdit = (claimId: string) => {
-    console.log("[v0] Edit claim:", claimId)
-    // TODO: Implement edit functionality
-  }
+export default function MyClaimsPage() {
+  const [claims, setClaims] = useState<Claim[]>(studentClaimsData)
 
   const handleDelete = (claimId: string) => {
     console.log("[v0] Delete claim:", claimId)
@@ -107,15 +84,6 @@ export default function MyClaimsPage() {
                         <td className="py-4">
                           {claim.status !== "Approved" && (
                             <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(claim.id)}
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                aria-label="Edit claim"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"

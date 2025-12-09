@@ -1,193 +1,186 @@
 "use client"
 
-import { Navbar } from "@/components/navbar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Search } from "lucide-react"
+import type React from "react"
+
 import { useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-const foundItems = [
-  {
-    id: 1,
-    name: "Blue Water Bottle",
-    location: "Library",
-    date: "2024-03-15",
-    image: "/blue-water-bottle.jpg",
-    category: "Others",
-  },
-  {
-    id: 2,
-    name: "Red Backpack",
-    location: "Cafeteria",
-    date: "2024-03-14",
-    image: "/red-backpack.png",
-    category: "Clothing",
-  },
-  {
-    id: 3,
-    name: "Black Wallet",
-    location: "Lecture Hall A",
-    date: "2024-03-13",
-    image: "/black-leather-wallet.jpg",
-    category: "Wallet",
-  },
-  {
-    id: 4,
-    name: "Silver Laptop",
-    location: "Computer Lab",
-    date: "2024-03-12",
-    image: "/silver-laptop.jpg",
-    category: "Electronics",
-  },
-  {
-    id: 5,
-    name: "Green Umbrella",
-    location: "Main Entrance",
-    date: "2024-03-11",
-    image: "/green-umbrella.jpg",
-    category: "Others",
-  },
-  {
-    id: 6,
-    name: "White Headphones",
-    location: "Sports Complex",
-    date: "2024-03-10",
-    image: "/white-wireless-headphones.png",
-    category: "Electronics",
-  },
-]
+type LoginMode = "student" | "admin"
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("All")
-  const [dateSort, setDateSort] = useState("newest")
+export default function LoginPage() {
+  const router = useRouter()
+  const [loginMode, setLoginMode] = useState<LoginMode>("student")
+  const [studentId, setStudentId] = useState("")
+  const [adminUsername, setAdminUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
-  let filteredItems = foundItems.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = categoryFilter === "All" || item.category === categoryFilter
-    return matchesSearch && matchesCategory
-  })
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
 
-  // Sort by date
-  filteredItems = [...filteredItems].sort((a, b) => {
-    if (dateSort === "newest") {
-      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    // Simulate validation
+    if (loginMode === "student") {
+      if (!studentId || !password) {
+        setError("Please fill in all fields")
+        return
+      }
+      // Simulate checking credentials
+      if (password.length < 6) {
+        setError("Incorrect password. Please try again.")
+        return
+      }
+      if (studentId === "unknown") {
+        setError("Student account does not exist in the system. Please check your Student ID.")
+        return
+      }
+      router.push("/dashboard")
     } else {
-      return new Date(a.date).getTime() - new Date(b.date).getTime()
-    }
-  })
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Electronics":
-        return "bg-blue-100 text-blue-700 border-blue-200"
-      case "Clothing":
-        return "bg-purple-100 text-purple-700 border-purple-200"
-      case "Keys":
-        return "bg-amber-100 text-amber-700 border-amber-200"
-      case "Wallet":
-        return "bg-green-100 text-green-700 border-green-200"
-      case "Others":
-        return "bg-gray-100 text-gray-700 border-gray-200"
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
+      if (!adminUsername || !password) {
+        setError("Please fill in all fields")
+        return
+      }
+      // Simulate checking admin credentials
+      if (password !== "admin123") {
+        setError("Incorrect password. Please try again.")
+        return
+      }
+      if (adminUsername === "unknown") {
+        setError("Admin account does not exist in the system. Please check your username.")
+        return
+      }
+      router.push("/admin")
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="mb-4 text-balance text-3xl font-bold text-foreground">Found Items</h1>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 px-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-4">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-6 h-6 text-primary-foreground"
+              >
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              {loginMode === "student" ? "Student Login" : "Admin Login"}
+            </CardTitle>
+            <CardDescription className="mt-2">
+              {loginMode === "student"
+                ? "Access your TARUMT Lost & Found account"
+                : "Administrative access to Lost & Found system"}
+            </CardDescription>
+          </div>
+
+          {/* Toggle buttons */}
+          <div className="flex gap-2 p-1 bg-muted rounded-lg">
+            <Button
+              type="button"
+              variant={loginMode === "student" ? "default" : "ghost"}
+              className="flex-1"
+              onClick={() => {
+                setLoginMode("student")
+                setError("")
+              }}
+            >
+              Student
+            </Button>
+            <Button
+              type="button"
+              variant={loginMode === "admin" ? "default" : "ghost"}
+              className="flex-1"
+              onClick={() => {
+                setLoginMode("admin")
+                setError("")
+              }}
+            >
+              Admin
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error message */}
+            {error && (
+              <Alert variant="destructive" className="animate-in fade-in-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Student ID / Admin Username field */}
+            <div className="space-y-2">
+              <Label htmlFor={loginMode === "student" ? "studentId" : "adminUsername"}>
+                {loginMode === "student" ? "Student ID" : "Admin Username"}
+              </Label>
               <Input
+                id={loginMode === "student" ? "studentId" : "adminUsername"}
                 type="text"
-                placeholder="Search for items..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={loginMode === "student" ? "Enter your Student ID" : "Enter admin username"}
+                value={loginMode === "student" ? studentId : adminUsername}
+                onChange={(e) => {
+                  if (loginMode === "student") {
+                    setStudentId(e.target.value)
+                  } else {
+                    setAdminUsername(e.target.value)
+                  }
+                  setError("")
+                }}
+                className="h-11"
+                autoComplete={loginMode === "student" ? "username" : "username"}
               />
             </div>
-            <div className="flex gap-3">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="All">All Categories</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Clothing">Clothing</option>
-                <option value="Keys">Keys</option>
-                <option value="Wallet">Wallet</option>
-                <option value="Others">Others</option>
-              </select>
-              <select
-                value={dateSort}
-                onChange={(e) => setDateSort(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
+
+            {/* Password field */}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError("")
+                }}
+                className="h-11"
+                autoComplete="current-password"
+              />
             </div>
-          </div>
-        </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredItems.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              <div className="aspect-video w-full overflow-hidden bg-muted">
-                <img src={item.image || "/placeholder.svg"} alt={item.name} className="h-full w-full object-cover" />
-              </div>
-              <CardContent className="p-4">
-                <h3 className="mb-2 text-balance text-lg font-semibold text-foreground">{item.name}</h3>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>
-                    <span className="font-medium">Location:</span> {item.location}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <p className="flex-1">
-                      <span className="font-medium">Date Found:</span>{" "}
-                      {new Date(item.date).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getCategoryColor(
-                        item.category,
-                      )}`}
-                    >
-                      {item.category}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button className="w-full" asChild>
-                  <Link href={`/claim-item/${item.id}`}>Claim Item</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+            {/* Submit button */}
+            <Button type="submit" className="w-full h-11 text-base font-semibold">
+              Sign In
+            </Button>
 
-        {filteredItems.length === 0 && (
-          <div className="rounded-lg border border-border bg-card p-12 text-center">
-            <p className="text-pretty text-muted-foreground">
-              No items found matching your search. Try different keywords.
+            {/* Additional help text */}
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Please use your university credentials to log in.
             </p>
-          </div>
-        )}
-      </main>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -8,86 +8,85 @@ import { ArrowLeft, Trash2, MapPin, Calendar, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-// Mock data for found items (matching the admin dashboard)
-const foundItemsData = [
+const foundItems = [
   {
     id: 1,
     name: "Blue Water Bottle",
-    category: "Personal Items",
     location: "Library",
-    date: "2024-01-10",
-    description:
-      "A blue stainless steel water bottle with a wide mouth opening. The bottle appears to be in good condition with some minor scratches on the bottom. It has a capacity of approximately 750ml and features a screw-on cap.",
-    reportedBy: "John Smith (Staff ID: ST2021001)",
+    date: "2024-01-15",
     image: "/blue-water-bottle.jpg",
-    status: "Active",
+    category: "Others",
+    description: "A blue stainless steel water bottle found in the library reading area.",
+    reportedBy: "Sarah Lee",
+    reporterId: "21WMR11111",
+    status: "Available",
   },
   {
     id: 2,
-    name: "Black Leather Wallet",
-    category: "Personal Items",
-    location: "Student Center",
-    date: "2024-01-12",
-    description:
-      "A black leather bifold wallet with brown stitching along the edges. The wallet appears well-used and contains multiple card slots. Found on a bench near the main entrance of the student center.",
-    reportedBy: "Security Team (ID: SEC005)",
-    image: "/black-leather-wallet.jpg",
-    status: "Active",
+    name: "Red Backpack",
+    location: "Cafeteria",
+    date: "2024-01-16",
+    image: "/red-backpack.png",
+    category: "Others",
+    description: "Red backpack with laptop compartment found under a cafeteria table.",
+    reportedBy: "Mike Chen",
+    reporterId: "21WMR22222",
+    status: "Available",
   },
   {
     id: 3,
-    name: "Red Backpack",
-    category: "Bags",
-    location: "Cafeteria",
-    date: "2024-01-08",
-    description:
-      "A red canvas backpack with multiple compartments and adjustable straps. The backpack has a small front pocket with a visible tear near the bottom. There's a panda keychain attached to the main zipper.",
-    reportedBy: "Cafeteria Staff (ID: CF2020015)",
-    image: "/red-backpack.png",
-    status: "Active",
+    name: "Black Leather Wallet",
+    location: "Gym",
+    date: "2024-01-14",
+    image: "/black-leather-wallet.jpg",
+    category: "Wallet",
+    description: "Black leather wallet found in the gym locker room.",
+    reportedBy: "Emily Wong",
+    reporterId: "21WMR33333",
+    status: "Available",
   },
   {
     id: 4,
     name: "Silver Laptop",
-    category: "Electronics",
-    location: "Lab Room 301",
-    date: "2024-01-11",
-    description:
-      "A silver MacBook Pro laptop, approximately 13-inch model. The device has a distinctive scratch on the top cover and appears to be in otherwise good condition. Found left on a desk after class hours.",
-    reportedBy: "Lab Technician (ID: LT2022008)",
+    location: "Study Room 3",
+    date: "2024-01-17",
     image: "/silver-laptop.jpg",
-    status: "Active",
+    category: "Electronics",
+    description: "Silver laptop found left in Study Room 3 after closing hours.",
+    reportedBy: "David Lim",
+    reporterId: "21WMR44444",
+    status: "Available",
   },
   {
     id: 5,
     name: "Green Umbrella",
-    category: "Personal Items",
     location: "Main Entrance",
-    date: "2024-01-09",
-    description:
-      "A green folding umbrella with a black handle. The umbrella is in working condition and appears relatively new. It was found near the main entrance during a rainy day.",
-    reportedBy: "Reception Desk (ID: REC001)",
+    date: "2024-01-13",
     image: "/green-umbrella.jpg",
-    status: "Active",
+    category: "Others",
+    description: "Green compact umbrella found near the main entrance.",
+    reportedBy: "Lisa Tan",
+    reporterId: "21WMR55555",
+    status: "Available",
   },
   {
     id: 6,
     name: "White Wireless Headphones",
-    category: "Electronics",
-    location: "Lecture Hall B",
-    date: "2024-01-13",
-    description:
-      "White over-ear wireless headphones with noise cancellation features. The headphones are in excellent condition with minimal wear. Found on a seat in Lecture Hall B after an evening class.",
-    reportedBy: "Cleaning Staff (ID: CS2021042)",
+    location: "Computer Lab",
+    date: "2024-01-18",
     image: "/white-wireless-headphones.png",
-    status: "Active",
+    category: "Electronics",
+    description: "White wireless headphones found on desk in Computer Lab 2.",
+    reportedBy: "Kevin Ng",
+    reporterId: "21WMR66666",
+    status: "Available",
   },
 ]
 
 export default function ItemViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const itemId = Number.parseInt(params.id)
-  const item = foundItemsData.find((i) => i.id === itemId)
+  const item = foundItems.find((i) => i.id === itemId)
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to delete "${item?.name}"? This action cannot be undone.`)) {

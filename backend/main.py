@@ -12,10 +12,16 @@ DB_URL = "postgresql://neondb_owner:npg_jGZ6UEg4Cnte@ep-flat-haze-a1tp3x3c-poole
 
 app = FastAPI()
 
+# frontend URL
+origins = [
+    "http://localhost:3000"
+    "http://192.168.100.136:3000"
+]
+
 # Enable CORS for React Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,122 +5,123 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Package, CheckCircle, Clock, TrendingUp, Eye, Trash2 } from "lucide-react"
+import { Package, Clock, Eye, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 
-// Mock data for stats
-const stats = [
-  {
-    title: "Total Found Items",
-    value: "156",
-    icon: Package,
-    description: "All time found items",
-  },
-  {
-    title: "Active Found Items",
-    value: "42",
-    icon: TrendingUp,
-    description: "Currently available",
-  },
-  {
-    title: "Pending Claims",
-    value: "18",
-    icon: Clock,
-    description: "Awaiting review",
-  },
-  {
-    title: "Total Items Claimed",
-    value: "114",
-    icon: CheckCircle,
-    description: "Successfully returned",
-  },
+const adminStats = [
+  { title: "Total Found Items", value: "24", description: "All items reported", icon: Package },
+  { title: "Active Found Items", value: "18", description: "Currently available", icon: Package },
+  { title: "Pending Claims", value: "5", description: "Awaiting review", icon: Clock },
+  { title: "Total Items Claimed", value: "6", description: "Successfully returned", icon: Package },
 ]
 
-// Mock data for pending claims
 const pendingClaims = [
   {
     id: 1,
     itemName: "Blue Water Bottle",
-    claimantName: "Sarah Johnson",
-    studentId: "2021045678",
-    date: "2024-01-15",
-    phoneNumber: "012-345-6789",
-    proofDescription:
-      "The bottle has a small dent on the bottom left side and my name 'Sarah J.' written on the cap in permanent marker. I lost it in the library on January 10th during my study session.",
+    claimantName: "Alex Johnson",
+    date: "2024-01-20",
+    phone: "+60 12-345 6789",
+    proof: "It's a blue Hydro Flask with a dent on the bottom. I bought it last month at the campus bookstore.",
   },
   {
     id: 2,
-    itemName: "Black Leather Wallet",
-    claimantName: "Michael Chen",
-    studentId: "2022012345",
-    date: "2024-01-14",
-    phoneNumber: "012-987-6543",
-    proofDescription:
-      "The wallet contains my student ID card, a photo of my family, and a receipt from the campus bookstore dated January 12th. It's a bifold wallet with brown stitching on the edges.",
+    itemName: "Silver Laptop",
+    claimantName: "Rachel Wong",
+    date: "2024-01-19",
+    phone: "+60 11-234 5678",
+    proof: "MacBook Pro 13-inch, has a 'TAR UMT' sticker on the lid and my initials 'RW' engraved on the bottom.",
   },
   {
     id: 3,
-    itemName: "Red Backpack",
-    claimantName: "Emily Tan",
-    studentId: "2021098765",
-    date: "2024-01-13",
-    phoneNumber: "016-234-5678",
-    proofDescription:
-      "My backpack has a keychain of a small panda attached to the zipper and contains my notebook with my name on the first page. The front pocket has a small tear near the bottom.",
-  },
-  {
-    id: 4,
-    itemName: "Silver Laptop",
-    claimantName: "David Wong",
-    studentId: "2023056789",
-    date: "2024-01-12",
-    phoneNumber: "017-876-5432",
-    proofDescription:
-      "The laptop is a MacBook Pro with a distinctive scratch on the top cover and has my name engraved on the bottom. The serial number is C02XY1234567.",
+    itemName: "Black Leather Wallet",
+    claimantName: "Tom Lee",
+    date: "2024-01-18",
+    phone: "+60 16-789 1234",
+    proof: "Black leather wallet containing my student ID card and driver's license under the name Tom Lee.",
   },
 ]
 
-// Mock data for all found items
-const allFoundItems = [
-  { id: 1, name: "Blue Water Bottle", location: "Library", date: "2024-01-10", status: "Active" },
+const foundItemsData = [
+  {
+    id: 1,
+    name: "Blue Water Bottle",
+    location: "Library",
+    date: "2024-01-15",
+    image: "/blue-water-bottle.jpg",
+    category: "Others",
+    description: "A blue stainless steel water bottle found in the library reading area.",
+    reportedBy: "Sarah Lee",
+    reporterId: "21WMR11111",
+    status: "Available",
+  },
   {
     id: 2,
-    name: "Black Leather Wallet",
-    location: "Student Center",
-    date: "2024-01-12",
-    status: "Active",
+    name: "Red Backpack",
+    location: "Cafeteria",
+    date: "2024-01-16",
+    image: "/red-backpack.png",
+    category: "Others",
+    description: "Red backpack with laptop compartment found under a cafeteria table.",
+    reportedBy: "Mike Chen",
+    reporterId: "21WMR22222",
+    status: "Available",
   },
-  { id: 3, name: "Red Backpack", location: "Cafeteria", date: "2024-01-08", status: "Active" },
-  { id: 4, name: "Silver Laptop", location: "Lab Room 301", date: "2024-01-11", status: "Active" },
+  {
+    id: 3,
+    name: "Black Leather Wallet",
+    location: "Gym",
+    date: "2024-01-14",
+    image: "/black-leather-wallet.jpg",
+    category: "Wallet",
+    description: "Black leather wallet found in the gym locker room.",
+    reportedBy: "Emily Wong",
+    reporterId: "21WMR33333",
+    status: "Available",
+  },
+  {
+    id: 4,
+    name: "Silver Laptop",
+    location: "Study Room 3",
+    date: "2024-01-17",
+    image: "/silver-laptop.jpg",
+    category: "Electronics",
+    description: "Silver laptop found left in Study Room 3 after closing hours.",
+    reportedBy: "David Lim",
+    reporterId: "21WMR44444",
+    status: "Available",
+  },
   {
     id: 5,
     name: "Green Umbrella",
     location: "Main Entrance",
-    date: "2024-01-09",
-    status: "Active",
+    date: "2024-01-13",
+    image: "/green-umbrella.jpg",
+    category: "Others",
+    description: "Green compact umbrella found near the main entrance.",
+    reportedBy: "Lisa Tan",
+    reporterId: "21WMR55555",
+    status: "Available",
   },
   {
     id: 6,
     name: "White Wireless Headphones",
-    location: "Lecture Hall B",
-    date: "2024-01-13",
-    status: "Active",
+    location: "Computer Lab",
+    date: "2024-01-18",
+    image: "/white-wireless-headphones.png",
+    category: "Electronics",
+    description: "White wireless headphones found on desk in Computer Lab 2.",
+    reportedBy: "Kevin Ng",
+    reporterId: "21WMR66666",
+    status: "Available",
   },
-  {
-    id: 7,
-    name: "Brown Textbook (Mathematics)",
-    location: "Library",
-    date: "2024-01-07",
-    status: "Active",
-  },
-  { id: 8, name: "Black Phone Charger", location: "Cafeteria", date: "2024-01-14", status: "Active" },
 ]
 
 export default function AdminDashboard() {
   const [selectedClaim, setSelectedClaim] = useState<(typeof pendingClaims)[0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [items, setItems] = useState(allFoundItems)
+  const [items, setItems] = useState(foundItemsData)
   const router = useRouter()
 
   const handleViewDetails = (claim: (typeof pendingClaims)[0]) => {
@@ -149,7 +150,7 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => {
+          {adminStats.map((stat, index) => {
             const Icon = stat.icon
             return (
               <Card key={index}>
