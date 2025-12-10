@@ -10,17 +10,40 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, Calendar } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { getCategories, getLocations, submitFoundItem, getUserInfo, type Category, type Location } from "@/lib/api"
 
 export default function ReportItemPage() {
+  const router = useRouter()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     itemName: "",
     description: "",
-    location: "",
-    category: "",
+    location_id: "",
+    category_id: "",
     dateFound: "",
   })
+
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      try {
+        const [cats, locs] = await Promise.all([getCategories(), getLocations()])
+        setCategories(cats)
+        setLocations(locs)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load dropdown data")
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadDropdowns()
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -28,10 +51,36 @@ export default function ReportItemPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] Form submitted:", formData, "File:", selectedFile)
-    // Handle form submission logic here
+    setError(null)
+
+    if (!formData.itemName || !formData.description || !formData.category_id || !formData.location_id) {
+      setError("Please fill in all required fields.")
+      return
+    }
+
+    const user = getUserInfo()
+    if (!user?.user_id) {
+      setError("You must be logged in to submit a report.")
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      await submitFoundItem({
+        item_name: formData.itemName,
+        description: formData.description,
+        category_id: formData.category_id,
+        location_id: formData.location_id,
+        student_id: user.user_id,
+      })
+      router.push("/dashboard")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit report")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -68,21 +117,20 @@ export default function ReportItemPage() {
                   Category <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  value={formData.category_id}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                  disabled={loading || submitting}
                   required
                 >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="clothing">Clothing & Accessories</SelectItem>
-                    <SelectItem value="books">Books & Stationery</SelectItem>
-                    <SelectItem value="bags">Bags & Backpacks</SelectItem>
-                    <SelectItem value="personal">Personal Items</SelectItem>
-                    <SelectItem value="sports">Sports Equipment</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.category_id} value={category.category_id}>
+                        {category.category_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -93,23 +141,20 @@ export default function ReportItemPage() {
                   Location Found <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={formData.location}
-                  onValueChange={(value) => setFormData({ ...formData, location: value })}
+                  value={formData.location_id}
+                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                  disabled={loading || submitting}
                   required
                 >
                   <SelectTrigger id="location">
                     <SelectValue placeholder="Select a location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="library">Library</SelectItem>
-                    <SelectItem value="cafeteria">Cafeteria</SelectItem>
-                    <SelectItem value="lecture-hall-a">Lecture Hall A</SelectItem>
-                    <SelectItem value="lecture-hall-b">Lecture Hall B</SelectItem>
-                    <SelectItem value="computer-lab">Computer Lab</SelectItem>
-                    <SelectItem value="sports-complex">Sports Complex</SelectItem>
-                    <SelectItem value="main-entrance">Main Entrance</SelectItem>
-                    <SelectItem value="parking-lot">Parking Lot</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location.location_id} value={location.location_id}>
+                        {location.location_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -172,13 +217,20 @@ export default function ReportItemPage() {
 
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1">
-                  Submit Report
+                <Button type="submit" className="flex-1" disabled={submitting || loading}>
+                  {submitting ? "Submitting..." : "Submit Report"}
                 </Button>
-                <Button type="button" variant="outline" className="flex-1 bg-transparent">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                  onClick={() => router.back()}
+                  disabled={submitting}
+                >
                   Cancel
                 </Button>
               </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </form>
           </CardContent>
         </Card>

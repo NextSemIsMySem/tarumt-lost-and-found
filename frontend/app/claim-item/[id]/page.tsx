@@ -11,100 +11,97 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
-
-const foundItems = [
-  {
-    id: 1,
-    name: "Blue Water Bottle",
-    location: "Library",
-    date: "2024-01-15",
-    image: "/blue-water-bottle.jpg",
-    category: "Others",
-    description: "A blue stainless steel water bottle found in the library reading area.",
-    reportedBy: "Sarah Lee",
-    reporterId: "21WMR11111",
-    status: "Available",
-  },
-  {
-    id: 2,
-    name: "Red Backpack",
-    location: "Cafeteria",
-    date: "2024-01-16",
-    image: "/red-backpack.png",
-    category: "Others",
-    description: "Red backpack with laptop compartment found under a cafeteria table.",
-    reportedBy: "Mike Chen",
-    reporterId: "21WMR22222",
-    status: "Available",
-  },
-  {
-    id: 3,
-    name: "Black Leather Wallet",
-    location: "Gym",
-    date: "2024-01-14",
-    image: "/black-leather-wallet.jpg",
-    category: "Wallet",
-    description: "Black leather wallet found in the gym locker room.",
-    reportedBy: "Emily Wong",
-    reporterId: "21WMR33333",
-    status: "Available",
-  },
-  {
-    id: 4,
-    name: "Silver Laptop",
-    location: "Study Room 3",
-    date: "2024-01-17",
-    image: "/silver-laptop.jpg",
-    category: "Electronics",
-    description: "Silver laptop found left in Study Room 3 after closing hours.",
-    reportedBy: "David Lim",
-    reporterId: "21WMR44444",
-    status: "Available",
-  },
-  {
-    id: 5,
-    name: "Green Umbrella",
-    location: "Main Entrance",
-    date: "2024-01-13",
-    image: "/green-umbrella.jpg",
-    category: "Others",
-    description: "Green compact umbrella found near the main entrance.",
-    reportedBy: "Lisa Tan",
-    reporterId: "21WMR55555",
-    status: "Available",
-  },
-  {
-    id: 6,
-    name: "White Wireless Headphones",
-    location: "Computer Lab",
-    date: "2024-01-18",
-    image: "/white-wireless-headphones.png",
-    category: "Electronics",
-    description: "White wireless headphones found on desk in Computer Lab 2.",
-    reportedBy: "Kevin Ng",
-    reporterId: "21WMR66666",
-    status: "Available",
-  },
-]
+import { useEffect, useState } from "react"
+import { getItems, submitClaim, getUserInfo, isAuthenticated, type Item } from "@/lib/api"
 
 export default function ClaimItemPage() {
   const params = useParams()
   const router = useRouter()
-  const itemId = Number.parseInt(params.id as string)
-  const item = foundItems.find((i) => i.id === itemId)
+  const itemId = params.id as string
 
-  const [phoneNumber, setPhoneNumber] = useState("")
+  const [item, setItem] = useState<Item | null>(null)
   const [proofOfOwnership, setProofOfOwnership] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!item) {
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push("/")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (!userInfo || userInfo.role !== "student") {
+      router.push("/")
+      return
+    }
+
+    const loadItem = async () => {
+      try {
+        const items = await getItems({ item_id: itemId })
+        setItem(items[0] || null)
+        if (!items[0]) setError("Item not found")
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load item")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadItem()
+  }, [itemId, router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!proofOfOwnership.trim() || !item) {
+      alert("Please provide proof of ownership description")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (!userInfo) {
+      alert("You must be logged in to submit a claim.")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await submitClaim({
+        item_id: item.item_id,
+        student_id: userInfo.user_id,
+        proof_of_ownership: proofOfOwnership,
+      })
+      alert("Claim submitted successfully! You will be contacted soon.")
+      router.push("/")
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to submit claim")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCancel = () => {
+    router.push("/")
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading item...</p>
+      </div>
+    )
+  }
+
+  if (error || !item) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground">Item not found</h1>
+            <p className="mt-2 text-muted-foreground">{error || "The requested item does not exist."}</p>
             <Link href="/" className="mt-4 inline-flex items-center text-primary hover:underline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Found Items
@@ -115,24 +112,7 @@ export default function ClaimItemPage() {
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!proofOfOwnership.trim()) {
-      alert("Please provide proof of ownership description")
-      return
-    }
-
-    setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    alert("Claim submitted successfully! You will be contacted soon.")
-    router.push("/")
-  }
-
-  const handleCancel = () => {
-    router.push("/")
-  }
+  const userInfo = getUserInfo()
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,22 +127,25 @@ export default function ClaimItemPage() {
           <Card className="md:col-span-1">
             <CardHeader className="p-0">
               <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-muted">
-                <img src={item.image || "/placeholder.svg"} alt={item.name} className="h-full w-full object-cover" />
+                <img src={"/placeholder.svg"} alt={item.item_name} className="h-full w-full object-cover" />
               </div>
             </CardHeader>
             <CardContent className="p-4">
-              <h3 className="mb-2 text-balance text-lg font-semibold text-foreground">{item.name}</h3>
+              <h3 className="mb-2 text-balance text-lg font-semibold text-foreground">{item.item_name}</h3>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-medium text-foreground">Location:</span> {item.location}
+                  <span className="font-medium text-foreground">Location:</span> {item.location_name}
                 </p>
                 <p>
                   <span className="font-medium text-foreground">Date Found:</span>{" "}
-                  {new Date(item.date).toLocaleDateString("en-US", {
+                  {new Date(item.date_reported).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
                   })}
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Category:</span> {item.category_name}
                 </p>
               </div>
             </CardContent>
@@ -182,7 +165,7 @@ export default function ClaimItemPage() {
                     <Label htmlFor="studentName">Student Name</Label>
                     <Input
                       id="studentName"
-                      value="John Tan Wei Liang"
+                      value={userInfo?.username || ""}
                       readOnly
                       className="bg-muted text-muted-foreground"
                     />
@@ -190,20 +173,8 @@ export default function ClaimItemPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="studentId">Student ID</Label>
-                    <Input id="studentId" value="21WMR12345" readOnly className="bg-muted text-muted-foreground" />
+                    <Input id="studentId" value={userInfo?.user_id || ""} readOnly className="bg-muted text-muted-foreground" />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="e.g., +60 12-345 6789"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    required
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -212,7 +183,7 @@ export default function ClaimItemPage() {
                   </Label>
                   <Textarea
                     id="proofOfOwnership"
-                    placeholder="Please describe the item in detail to prove ownership (e.g., color, brand, distinguishing features, contents, purchase date, etc.)"
+                    placeholder="Describe the item in detail to prove ownership (e.g., color, brand, distinguishing features, contents, purchase date, etc.)"
                     rows={6}
                     value={proofOfOwnership}
                     onChange={(e) => setProofOfOwnership(e.target.value)}

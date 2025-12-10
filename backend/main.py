@@ -8,7 +8,7 @@ from datetime import date, datetime
 import bcrypt
 
 # --- CONFIGURATION ---
-# Replace with your actual Neon connection string
+# Neon DB connection string
 DB_URL = "postgresql://neondb_owner:npg_jGZ6UEg4Cnte@ep-flat-haze-a1tp3x3c-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 app = FastAPI()
@@ -156,7 +156,11 @@ def get_locations():
 
 # 3. ITEM REPORTING & DASHBOARD (Module 2 & 3)
 @app.get("/items")
-def get_found_items(search: Optional[str] = None, category_id: Optional[str] = None):
+def get_found_items(
+    search: Optional[str] = None,
+    category_id: Optional[str] = None,
+    item_id: Optional[str] = None,
+):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
@@ -175,6 +179,10 @@ def get_found_items(search: Optional[str] = None, category_id: Optional[str] = N
         query += " AND (i.item_name ILIKE %s OR i.description ILIKE %s)"
         params.extend([f"%{search}%", f"%{search}%"])
     
+    if item_id:
+        query += " AND i.item_id = %s"
+        params.append(item_id)
+
     if category_id:
         query += " AND i.category_id = %s"
         params.append(category_id)
@@ -259,6 +267,33 @@ def get_pending_claims():
     claims = cur.fetchall()
     conn.close()
     return claims
+
+@app.get("/students/{student_id}/claims")
+def get_student_claims(student_id: str):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            """
+            SELECT c.claim_id,
+                   c.item_id,
+                   i.item_name,
+                   c.date_claimed,
+                   c.claim_status
+            FROM CLAIM c
+            JOIN ITEM i ON c.item_id = i.item_id
+            WHERE c.student_id = %s
+            ORDER BY c.date_claimed DESC
+            """,
+            (student_id,),
+        )
+        claims = cur.fetchall()
+        return claims
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
 
 @app.put("/admin/claims")
 def process_claim(update: ClaimUpdate):

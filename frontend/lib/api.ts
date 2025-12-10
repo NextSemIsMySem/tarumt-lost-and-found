@@ -14,6 +14,40 @@ export interface LoginResponse {
   token: string
 }
 
+export interface Item {
+  item_id: string
+  item_name: string
+  description: string
+  status: string
+  date_reported: string
+  category_name: string
+  location_name: string
+}
+
+export interface Category {
+  category_id: string
+  category_name: string
+}
+
+export interface Location {
+  location_id: string
+  location_name: string
+}
+
+export interface ClaimPayload {
+  item_id: string
+  student_id: string
+  proof_of_ownership: string
+}
+
+export interface StudentClaim {
+  claim_id: string
+  item_id: string
+  item_name: string
+  date_claimed: string
+  claim_status: string
+}
+
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
@@ -29,6 +63,81 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   }
 
   return response.json()
+}
+
+export async function getItems(params?: { search?: string; category_id?: string; item_id?: string }): Promise<Item[]> {
+  const query = new URLSearchParams()
+  if (params?.search) query.set("search", params.search)
+  if (params?.category_id) query.set("category_id", params.category_id)
+  if (params?.item_id) query.set("item_id", params.item_id)
+
+  const response = await fetch(`${API_BASE_URL}/items${query.toString() ? `?${query.toString()}` : ""}`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch items")
+  }
+  return response.json()
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const response = await fetch(`${API_BASE_URL}/categories`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch categories")
+  }
+  return response.json()
+}
+
+export async function getLocations(): Promise<Location[]> {
+  const response = await fetch(`${API_BASE_URL}/locations`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch locations")
+  }
+  return response.json()
+}
+
+export async function submitClaim(payload: ClaimPayload): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/claims`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to submit claim" }))
+    throw new Error(error.detail || "Failed to submit claim")
+  }
+}
+
+export async function getStudentClaims(studentId: string): Promise<StudentClaim[]> {
+  const response = await fetch(`${API_BASE_URL}/students/${studentId}/claims`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch claims")
+  }
+  return response.json()
+}
+
+export interface ReportItemPayload {
+  item_name: string
+  description: string
+  category_id: string
+  location_id: string
+  student_id: string
+}
+
+export async function submitFoundItem(payload: ReportItemPayload): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/items`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to submit item" }))
+    throw new Error(error.detail || "Failed to submit item")
+  }
 }
 
 export function getAuthToken(): string | null {

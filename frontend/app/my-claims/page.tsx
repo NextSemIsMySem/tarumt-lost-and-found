@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { getStudentClaims, getUserInfo } from "@/lib/api"
 
 type ClaimStatus = "Pending" | "Approved" | "Rejected"
 
@@ -16,15 +17,40 @@ interface Claim {
   status: ClaimStatus
 }
 
-const studentClaimsData: Claim[] = [
-  { id: "1", itemName: "Blue Water Bottle", dateClaimed: "2024-01-20", status: "Pending" },
-  { id: "2", itemName: "Red Backpack", dateClaimed: "2024-01-19", status: "Approved" },
-  { id: "3", itemName: "Black USB Drive", dateClaimed: "2024-01-18", status: "Rejected" },
-  { id: "4", itemName: "Green Notebook", dateClaimed: "2024-01-17", status: "Pending" },
-]
-
 export default function MyClaimsPage() {
-  const [claims, setClaims] = useState<Claim[]>(studentClaimsData)
+  const [claims, setClaims] = useState<Claim[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string>("")
+
+  useEffect(() => {
+    const user = getUserInfo()
+
+    if (!user || user.role !== "student") {
+      setError("Please log in as a student to view your claims.")
+      setIsLoading(false)
+      return
+    }
+
+    const loadClaims = async () => {
+      try {
+        const data = await getStudentClaims(user.user_id)
+        setClaims(
+          data.map((claim) => ({
+            id: claim.claim_id,
+            itemName: claim.item_name,
+            dateClaimed: claim.date_claimed,
+            status: claim.claim_status as ClaimStatus,
+          }))
+        )
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load claims.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadClaims()
+  }, [])
 
   const handleDelete = (claimId: string) => {
     console.log("[v0] Delete claim:", claimId)
@@ -52,7 +78,15 @@ export default function MyClaimsPage() {
             <CardDescription>Track the status of your lost item claims</CardDescription>
           </CardHeader>
           <CardContent>
-            {claims.length === 0 ? (
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <p>Loading your claims...</p>
+              </div>
+            ) : error ? (
+              <div className="py-12 text-center text-destructive">
+                <p>{error}</p>
+              </div>
+            ) : claims.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground">
                 <p>You haven't made any claims yet.</p>
               </div>
