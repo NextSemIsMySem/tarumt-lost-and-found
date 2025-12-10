@@ -5,20 +5,29 @@ import { Button } from "@/components/ui/button"
 import { Menu, X, Search } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { clearAuth } from "@/lib/api"
 
-export function Navbar() {
+interface NavbarProps {
+  role?: "student" | "admin"
+}
+
+export function Navbar({ role = "student" }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
 
   const handleLogout = () => {
+    clearAuth()
     router.push("/")
   }
+
+  const isAdmin = role === "admin"
+  const logoHref = isAdmin ? "/admin" : "/dashboard"
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-primary shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href={logoHref} className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/10">
             <Search className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -29,37 +38,51 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-1 md:flex">
-          <Link href="/dashboard">
+          {isAdmin ? (
+            // Admin: Only show logout button
             <Button
-              variant="ghost"
-              className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              variant="secondary"
+              className="ml-2 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+              onClick={handleLogout}
             >
-              Found Items
+              Logout
             </Button>
-          </Link>
-          <Link href="/my-claims">
-            <Button
-              variant="ghost"
-              className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-            >
-              My Claims
-            </Button>
-          </Link>
-          <Link href="/report-item">
-            <Button
-              variant="ghost"
-              className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-            >
-              Report Item
-            </Button>
-          </Link>
-          <Button
-            variant="secondary"
-            className="ml-2 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
+          ) : (
+            // Student: Show all navigation buttons
+            <>
+              <Link href="/dashboard">
+                <Button
+                  variant="ghost"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                >
+                  Found Items
+                </Button>
+              </Link>
+              <Link href="/my-claims">
+                <Button
+                  variant="ghost"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                >
+                  My Claims
+                </Button>
+              </Link>
+              <Link href="/report-item">
+                <Button
+                  variant="ghost"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                >
+                  Report Item
+                </Button>
+              </Link>
+              <Button
+                variant="secondary"
+                className="ml-2 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -76,40 +99,57 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="border-t border-primary-foreground/20 bg-primary md:hidden">
           <div className="space-y-1 px-4 py-3">
-            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+            {isAdmin ? (
+              // Admin: Only show logout button
               <Button
-                variant="ghost"
-                className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                variant="secondary"
+                className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  handleLogout()
+                }}
               >
-                Found Items
+                Logout
               </Button>
-            </Link>
-            <Link href="/my-claims" onClick={() => setMobileMenuOpen(false)}>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-              >
-                My Claims
-              </Button>
-            </Link>
-            <Link href="/report-item" onClick={() => setMobileMenuOpen(false)}>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
-              >
-                Report Item
-              </Button>
-            </Link>
-            <Button
-              variant="secondary"
-              className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-              onClick={() => {
-                setMobileMenuOpen(false)
-                handleLogout()
-              }}
-            >
-              Logout
-            </Button>
+            ) : (
+              // Student: Show all navigation buttons
+              <>
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  >
+                    Found Items
+                  </Button>
+                </Link>
+                <Link href="/my-claims" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  >
+                    My Claims
+                  </Button>
+                </Link>
+                <Link href="/report-item" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  >
+                    Report Item
+                  </Button>
+                </Link>
+                <Button
+                  variant="secondary"
+                  className="w-full bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    handleLogout()
+                  }}
+                >
+                  Logout
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

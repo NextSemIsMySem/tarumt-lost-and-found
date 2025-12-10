@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date, datetime
+import bcrypt
 
 # --- CONFIGURATION ---
 # Replace with your actual Neon connection string
@@ -14,17 +15,19 @@ app = FastAPI()
 
 # frontend URL
 origins = [
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://192.168.100.136:3000"
 ]
 
-# Enable CORS for React Frontend
+# Enable CORS for React Frontend - Added immediately after app initialization
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # --- DATABASE HELPER ---
@@ -39,12 +42,13 @@ def get_db_connection():
 # --- PYDANTIC MODELS (Data Validation) ---
 
 class LoginRequest(BaseModel):
-    username: str
+    student_id: Optional[str] = None  # For student login
+    admin_id: Optional[str] = None  # For admin login
     password: str
 
 class LoginResponse(BaseModel):
     status: str
-    user_id: int
+    user_id: str  # student_id or admin_id (VARCHAR)
     username: str
     role: str
     token: str
@@ -52,47 +56,114 @@ class LoginResponse(BaseModel):
 class ItemCreate(BaseModel):
     item_name: str
     description: str
-    category_id: int
-    location_id: int
-    date_found: date
-    reported_by_user_id: int
+    category_id: str  # VARCHAR(3) format: CT%
+    location_id: str  # VARCHAR(3) format: L__
+    student_id: str  # VARCHAR(7) format: ST%
     image_url: Optional[str] = None
 
 class ClaimCreate(BaseModel):
-    item_id: int
-    user_id: int
+    item_id: str  # VARCHAR(5) format: IT###
+    student_id: str  # VARCHAR(7) format: ST%
     proof_of_ownership: str
 
 class ClaimUpdate(BaseModel):
-    claim_id: int
-    status: str # 'Approved' or 'Rejected'
+    claim_id: str  # VARCHAR(5) format: C####
+    admin_id: str  # VARCHAR(5) format: AT% - Admin processing the claim
+    status: str  # 'Approved' or 'Rejected'
 
 # --- API ENDPOINTS ---
+
+# Handle OPTIONS requests for CORS preflight
+@app.options("/login")
+async def options_login():
+    return {"message": "OK"}
 
 # 1. AUTHENTICATION (Module 1)
 @app.post("/login", response_model=LoginResponse)
 def login(credentials: LoginRequest):
-    # Check against MOCK_USERS (Simulated College DB Integration)
-    user = next((u for u in MOCK_USERS if u["username"] == credentials.username and u["password"] == credentials.password), None)
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
     
-    if user:
-        # In a real app, generate a real JWT here.
-        return {
-            "status": "success",
-            "user_id": user["user_id"],
-            "username": user["username"],
-            "role": user["role"],
-            "token": f"fake-jwt-token-{user['user_id']}" 
-        }
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        # Validate that either student_id or admin_id is provided, but not both
+        if not credentials.student_id and not credentials.admin_id:
+            raise HTTPException(status_code=400, detail="Either student_id (for student) or admin_id (for admin) must be provided")
+        if credentials.student_id and credentials.admin_id:
+            raise HTTPException(status_code=400, detail="Provide either student_id or admin_id, not both")
+        
+        # Admin login: Check ADMIN table using admin_id
+        if credentials.admin_id:
+            cur.execute(
+                "SELECT admin_id, username, email, password_hash FROM ADMIN WHERE admin_id = %s",
+                (credentials.admin_id,)
+            )
+            admin = cur.fetchone()
+            
+            if admin and admin['password_hash']:
+                # Verify password hash - password_hash is stored as VARCHAR, encode to bytes for bcrypt
+                # Use latin-1 encoding to preserve exact byte values (1-to-1 mapping)
+                try:
+                    if isinstance(admin['password_hash'], str):
+                        password_hash_bytes = admin['password_hash'].encode('latin-1')
+                    else:
+                        password_hash_bytes = admin['password_hash']
+                    if bcrypt.checkpw(credentials.password.encode('utf-8'), password_hash_bytes):
+                        return {
+                            "status": "success",
+                            "user_id": admin['admin_id'],
+                            "username": admin['username'],
+                            "role": "admin",
+                            "token": f"fake-jwt-token-{admin['admin_id']}"
+                        }
+                except Exception as e:
+                    # Password verification failed
+                    pass
+            
+            raise HTTPException(status_code=401, detail="Invalid admin credentials")
+        
+        # Student login: Check STUDENT table using student_id
+        if credentials.student_id:
+            cur.execute(
+                "SELECT student_id, username, email, password_hash FROM STUDENT WHERE student_id = %s",
+                (credentials.student_id,)
+            )
+            student = cur.fetchone()
+            
+            if student and student['password_hash']:
+                # Verify password hash - password_hash is stored as VARCHAR, encode to bytes for bcrypt
+                # Use latin-1 encoding to preserve exact byte values (1-to-1 mapping)
+                try:
+                    if isinstance(student['password_hash'], str):
+                        password_hash_bytes = student['password_hash'].encode('latin-1')
+                    else:
+                        password_hash_bytes = student['password_hash']
+                    if bcrypt.checkpw(credentials.password.encode('utf-8'), password_hash_bytes):
+                        return {
+                            "status": "success",
+                            "user_id": student['student_id'],
+                            "username": student['username'],
+                            "role": "student",
+                            "token": f"fake-jwt-token-{student['student_id']}"
+                        }
+                except Exception as e:
+                    # Password verification failed
+                    pass
+            
+            raise HTTPException(status_code=401, detail="Invalid student credentials")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+    finally:
+        conn.close()
 
 # 2. DROPDOWN DATA (Helpers for Frontend)
 @app.get("/categories")
 def get_categories():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT category_id, name FROM categories")
+    cur.execute("SELECT category_id, category_name FROM CATEGORY")
     categories = cur.fetchall()
     conn.close()
     return categories
@@ -101,24 +172,24 @@ def get_categories():
 def get_locations():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("SELECT location_id, name FROM locations")
+    cur.execute("SELECT location_id, location_name FROM LOCATION")
     locations = cur.fetchall()
     conn.close()
     return locations
 
 # 3. ITEM REPORTING & DASHBOARD (Module 2 & 3)
 @app.get("/items")
-def get_found_items(search: Optional[str] = None, category_id: Optional[int] = None):
+def get_found_items(search: Optional[str] = None, category_id: Optional[str] = None):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     # Dynamic Query Building
     query = """
-        SELECT i.item_id, i.item_name, i.description, i.status, i.date_found, i.image_url,
-               c.name as category_name, l.name as location_name
-        FROM items i
-        JOIN categories c ON i.category_id = c.category_id
-        JOIN locations l ON i.location_id = l.location_id
+        SELECT i.item_id, i.item_name, i.description, i.status, i.date_reported,
+               c.category_name, l.location_name
+        FROM ITEM i
+        JOIN CATEGORY c ON i.category_id = c.category_id
+        JOIN LOCATION l ON i.location_id = l.location_id
         WHERE i.status = 'Found'
     """
     params = []
@@ -143,13 +214,14 @@ def report_found_item(item: ItemCreate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # date_reported will be set automatically by DEFAULT CURRENT_TIMESTAMP
         cur.execute(
             """
-            INSERT INTO items (item_name, description, category_id, location_id, date_found, reported_by_user_id, image_url, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'Found')
+            INSERT INTO ITEM (item_name, description, category_id, location_id, student_id, status)
+            VALUES (%s, %s, %s, %s, %s, 'Found')
             RETURNING item_id
             """,
-            (item.item_name, item.description, item.category_id, item.location_id, item.date_found, item.reported_by_user_id, item.image_url)
+            (item.item_name, item.description, item.category_id, item.location_id, item.student_id)
         )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -167,18 +239,21 @@ def submit_claim(claim: ClaimCreate):
     cur = conn.cursor()
     try:
         # Check if item is still available
-        cur.execute("SELECT status FROM items WHERE item_id = %s", (claim.item_id,))
+        cur.execute("SELECT status FROM ITEM WHERE item_id = %s", (claim.item_id,))
         item_status = cur.fetchone()
         if not item_status or item_status[0] != 'Found':
              raise HTTPException(status_code=400, detail="Item is not available for claim")
 
+        # date_claimed will be set automatically by DEFAULT CURRENT_TIMESTAMP
+        # Note: admin_id is NOT NULL in schema, so we use a placeholder admin_id
+        # This will be updated to the actual processing admin when the claim is processed
         cur.execute(
             """
-            INSERT INTO claims (claimant_user_id, claimed_item_id, proof_of_ownership, claim_status)
-            VALUES (%s, %s, %s, 'Pending')
+            INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id)
+            VALUES (%s, %s, %s, 'Pending', (SELECT admin_id FROM ADMIN LIMIT 1))
             RETURNING claim_id
             """,
-            (claim.user_id, claim.item_id, claim.proof_of_ownership)
+            (claim.student_id, claim.item_id, claim.proof_of_ownership)
         )
         conn.commit()
         return {"status": "success", "message": "Claim submitted for review"}
@@ -198,10 +273,10 @@ def get_pending_claims():
     cur.execute("""
         SELECT c.claim_id, c.proof_of_ownership, c.date_claimed, c.claim_status,
                i.item_name, i.item_id,
-               u.username as claimant_name
-        FROM claims c
-        JOIN items i ON c.claimed_item_id = i.item_id
-        JOIN users u ON c.claimant_user_id = u.user_id
+               s.username as claimant_name
+        FROM CLAIM c
+        JOIN ITEM i ON c.item_id = i.item_id
+        JOIN STUDENT s ON c.student_id = s.student_id
         WHERE c.claim_status = 'Pending'
     """)
     claims = cur.fetchall()
@@ -214,10 +289,10 @@ def process_claim(update: ClaimUpdate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # 1. Update Claim Status
+        # 1. Update Claim Status and set admin_id (admin processing the claim)
         cur.execute(
-            "UPDATE claims SET claim_status = %s WHERE claim_id = %s RETURNING claimed_item_id",
-            (update.status, update.claim_id)
+            "UPDATE CLAIM SET claim_status = %s, admin_id = %s WHERE claim_id = %s RETURNING item_id",
+            (update.status, update.admin_id, update.claim_id)
         )
         result = cur.fetchone()
         if not result:
@@ -227,9 +302,9 @@ def process_claim(update: ClaimUpdate):
 
         # 2. If Approved, Update Item Status to 'Claimed'
         if update.status == 'Approved':
-            cur.execute("UPDATE items SET status = 'Claimed' WHERE item_id = %s", (item_id,))
+            cur.execute("UPDATE ITEM SET status = 'Claimed' WHERE item_id = %s", (item_id,))
             # Optional: Reject all other pending claims for this item
-            cur.execute("UPDATE claims SET claim_status = 'Rejected' WHERE claimed_item_id = %s AND claim_id != %s", (item_id, update.claim_id))
+            cur.execute("UPDATE CLAIM SET claim_status = 'Rejected' WHERE item_id = %s AND claim_id != %s", (item_id, update.claim_id))
 
         conn.commit()
         return {"status": "success", "message": f"Claim {update.status}"}
@@ -245,13 +320,13 @@ def get_stats():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    cur.execute("SELECT COUNT(*) FROM items")
+    cur.execute("SELECT COUNT(*) FROM ITEM")
     total_items = cur.fetchone()[0]
     
-    cur.execute("SELECT COUNT(*) FROM items WHERE status = 'Claimed'")
+    cur.execute("SELECT COUNT(*) FROM ITEM WHERE status = 'Claimed'")
     total_claimed = cur.fetchone()[0]
     
-    cur.execute("SELECT COUNT(*) FROM claims WHERE claim_status = 'Pending'")
+    cur.execute("SELECT COUNT(*) FROM CLAIM WHERE claim_status = 'Pending'")
     pending_claims = cur.fetchone()[0]
     
     conn.close()

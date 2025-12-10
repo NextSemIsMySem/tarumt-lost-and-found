@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { login, setAuth, isAuthenticated, getUserInfo } from "@/lib/api"
+import { useEffect } from "react"
 
 type LoginMode = "student" | "admin"
 
@@ -17,45 +19,74 @@ export default function LoginPage() {
   const router = useRouter()
   const [loginMode, setLoginMode] = useState<LoginMode>("student")
   const [studentId, setStudentId] = useState("")
-  const [adminUsername, setAdminUsername] = useState("")
+  const [adminId, setAdminId] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (isAuthenticated()) {
+      const userInfo = getUserInfo()
+      if (userInfo?.role === "admin") {
+        router.push("/admin")
+      } else if (userInfo?.role === "student") {
+        router.push("/dashboard")
+      }
+    }
+  }, [router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setIsLoading(true)
 
-    // Simulate validation
-    if (loginMode === "student") {
-      if (!studentId || !password) {
-        setError("Please fill in all fields")
-        return
+    try {
+      if (loginMode === "student") {
+        if (!studentId || !password) {
+          setError("Please fill in all fields")
+          setIsLoading(false)
+          return
+        }
+
+        const response = await login({
+          student_id: studentId,
+          password: password,
+        })
+
+        // Store authentication info
+        setAuth(response.token, {
+          user_id: response.user_id,
+          username: response.username,
+          role: response.role,
+        })
+
+        router.push("/dashboard")
+      } else {
+        if (!adminId || !password) {
+          setError("Please fill in all fields")
+          setIsLoading(false)
+          return
+        }
+
+        const response = await login({
+          admin_id: adminId,
+          password: password,
+        })
+
+        // Store authentication info
+        setAuth(response.token, {
+          user_id: response.user_id,
+          username: response.username,
+          role: response.role,
+        })
+
+        router.push("/admin")
       }
-      // Simulate checking credentials
-      if (password.length < 6) {
-        setError("Incorrect password. Please try again.")
-        return
-      }
-      if (studentId === "unknown") {
-        setError("Student account does not exist in the system. Please check your Student ID.")
-        return
-      }
-      router.push("/dashboard")
-    } else {
-      if (!adminUsername || !password) {
-        setError("Please fill in all fields")
-        return
-      }
-      // Simulate checking admin credentials
-      if (password !== "admin123") {
-        setError("Incorrect password. Please try again.")
-        return
-      }
-      if (adminUsername === "unknown") {
-        setError("Admin account does not exist in the system. Please check your username.")
-        return
-      }
-      router.push("/admin")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -129,26 +160,27 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Student ID / Admin Username field */}
+            {/* Student ID / Admin ID field */}
             <div className="space-y-2">
-              <Label htmlFor={loginMode === "student" ? "studentId" : "adminUsername"}>
-                {loginMode === "student" ? "Student ID" : "Admin Username"}
+              <Label htmlFor={loginMode === "student" ? "studentId" : "adminId"}>
+                {loginMode === "student" ? "Student ID" : "Admin ID"}
               </Label>
               <Input
-                id={loginMode === "student" ? "studentId" : "adminUsername"}
+                id={loginMode === "student" ? "studentId" : "adminId"}
                 type="text"
-                placeholder={loginMode === "student" ? "Enter your Student ID" : "Enter admin username"}
-                value={loginMode === "student" ? studentId : adminUsername}
+                placeholder={loginMode === "student" ? "Enter your Student ID" : "Enter Admin ID"}
+                value={loginMode === "student" ? studentId : adminId}
                 onChange={(e) => {
                   if (loginMode === "student") {
                     setStudentId(e.target.value)
                   } else {
-                    setAdminUsername(e.target.value)
+                    setAdminId(e.target.value)
                   }
                   setError("")
                 }}
                 className="h-11"
                 autoComplete={loginMode === "student" ? "username" : "username"}
+                disabled={isLoading}
               />
             </div>
 
@@ -166,12 +198,13 @@ export default function LoginPage() {
                 }}
                 className="h-11"
                 autoComplete="current-password"
+                disabled={isLoading}
               />
             </div>
 
             {/* Submit button */}
-            <Button type="submit" className="w-full h-11 text-base font-semibold">
-              Sign In
+            <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
             {/* Additional help text */}

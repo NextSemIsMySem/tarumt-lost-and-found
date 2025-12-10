@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Trash2, MapPin, Calendar, User } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import Image from "next/image"
+import { isAuthenticated, getUserInfo } from "@/lib/api"
 
 const foundItems = [
   {
@@ -87,6 +89,23 @@ export default function ItemViewPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const itemId = Number.parseInt(params.id)
   const item = foundItems.find((i) => i.id === itemId)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    // Check authentication on mount
+    if (!isAuthenticated()) {
+      router.push("/")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (userInfo?.role !== "admin") {
+      router.push("/")
+      return
+    }
+
+    setIsCheckingAuth(false)
+  }, [router])
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to delete "${item?.name}"? This action cannot be undone.`)) {
@@ -99,10 +118,18 @@ export default function ItemViewPage({ params }: { params: { id: string } }) {
     router.push("/admin")
   }
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   if (!item) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <Navbar role="admin" />
         <div className="mx-auto max-w-4xl px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-foreground">Item Not Found</h1>
           <p className="mt-2 text-muted-foreground">The item you are looking for does not exist.</p>
@@ -116,7 +143,7 @@ export default function ItemViewPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar role="admin" />
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Main Card */}
         <Card className="overflow-hidden">

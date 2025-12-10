@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Search } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { isAuthenticated, getUserInfo } from "@/lib/api"
 
 const foundItems = [
   {
@@ -84,9 +86,35 @@ const foundItems = [
 ]
 
 const Home = () => {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [dateSort, setDateSort] = useState("newest")
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    // Check authentication on mount
+    if (!isAuthenticated()) {
+      router.push("/")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (userInfo?.role !== "student") {
+      router.push("/")
+      return
+    }
+
+    setIsCheckingAuth(false)
+  }, [router])
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
 
   let filteredItems = foundItems.filter((item) => {
     const matchesSearch =

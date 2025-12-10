@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Package, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
+import { isAuthenticated, getUserInfo } from "@/lib/api"
 
 const claimVerificationData = {
   "1": {
@@ -71,13 +72,38 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
   const router = useRouter()
   const [rationale, setRationale] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    // Check authentication on mount
+    if (!isAuthenticated()) {
+      router.push("/")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (userInfo?.role !== "admin") {
+      router.push("/")
+      return
+    }
+
+    setIsCheckingAuth(false)
+  }, [router])
 
   const data = claimVerificationData[params.id as keyof typeof claimVerificationData]
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
 
   if (!data) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <Navbar role="admin" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-lg text-muted-foreground">Claim not found</p>
@@ -120,7 +146,7 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar role="admin" />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Package, Clock, Eye, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { isAuthenticated, getUserInfo } from "@/lib/api"
 
 const adminStats = [
   { title: "Total Found Items", value: "24", description: "All items reported", icon: Package },
@@ -123,6 +124,23 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [items, setItems] = useState(foundItemsData)
   const router = useRouter()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    // Check authentication on mount
+    if (!isAuthenticated()) {
+      router.push("/")
+      return
+    }
+
+    const userInfo = getUserInfo()
+    if (userInfo?.role !== "admin") {
+      router.push("/")
+      return
+    }
+
+    setIsCheckingAuth(false)
+  }, [router])
 
   const handleViewDetails = (claim: (typeof pendingClaims)[0]) => {
     router.push(`/admin/claim-verification/${claim.id}`)
@@ -138,9 +156,17 @@ export default function AdminDashboard() {
     }
   }
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar role="admin" />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
