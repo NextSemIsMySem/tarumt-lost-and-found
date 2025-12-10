@@ -147,6 +147,25 @@ export async function getAdminClaims(): Promise<
   return response.json()
 }
 
+export async function processAdminClaim(payload: {
+  claim_id: string
+  admin_id: string
+  status: "Approved" | "Rejected"
+}): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/admin/claims`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to update claim" }))
+    throw new Error(error.detail || "Failed to update claim")
+  }
+}
+
 export interface ReportItemPayload {
   item_name: string
   description: string
@@ -167,6 +186,14 @@ export async function submitFoundItem(payload: ReportItemPayload): Promise<void>
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Failed to submit item" }))
     throw new Error(error.detail || "Failed to submit item")
+  }
+}
+
+export async function deleteItem(itemId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/items/${itemId}`, { method: "DELETE" })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to delete item" }))
+    throw new Error(error.detail || "Failed to delete item")
   }
 }
 

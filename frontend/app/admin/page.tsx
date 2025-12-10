@@ -14,6 +14,7 @@ import {
   getAdminStats,
   getAdminClaims,
   getItems,
+  deleteItem,
   type Item,
 } from "@/lib/api"
 
@@ -69,13 +70,20 @@ export default function AdminDashboard() {
     router.push(`/admin/claim-verification/${claim.claim_id}`)
   }
 
-  const handleViewItem = (itemId: number) => {
+  const handleViewItem = (itemId: string) => {
     router.push(`/admin/item/${itemId}`)
   }
 
-  const handleDeleteItem = (itemId: number) => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      setItems(items.filter((item) => Number(item.item_id) !== itemId))
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this item?")) return
+    try {
+      await deleteItem(itemId)
+      setItems((prev) => prev.filter((item) => item.item_id !== itemId))
+      // Refesh stats after deletion
+      const updatedStats = await getAdminStats()
+      setStats(updatedStats)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete item")
     }
   }
 
@@ -238,7 +246,7 @@ export default function AdminDashboard() {
                         <tr key={item.item_id} className="border-b border-border last:border-0">
                           <td className="py-4 text-sm font-medium text-foreground">
                             <button
-                              onClick={() => handleViewItem(Number(item.item_id))}
+                              onClick={() => handleViewItem(item.item_id)}
                               className="text-left hover:text-primary hover:underline"
                             >
                               {item.item_name}
@@ -262,7 +270,7 @@ export default function AdminDashboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleViewItem(Number(item.item_id))}
+                                onClick={() => handleViewItem(item.item_id)}
                                 className="gap-2"
                               >
                                 <Eye className="h-4 w-4" />
@@ -271,7 +279,7 @@ export default function AdminDashboard() {
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDeleteItem(Number(item.item_id))}
+                                onClick={() => handleDeleteItem(item.item_id)}
                                 className="gap-2"
                               >
                                 <Trash2 className="h-4 w-4" />

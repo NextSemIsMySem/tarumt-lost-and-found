@@ -7,73 +7,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Package, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import Image from "next/image"
-import { isAuthenticated, getUserInfo } from "@/lib/api"
+import {
+  getAdminClaims,
+  getItems,
+  isAuthenticated,
+  getUserInfo,
+  processAdminClaim,
+  type Item,
+} from "@/lib/api"
 
-const claimVerificationData = {
-  "1": {
-    item: {
-      name: "Blue Water Bottle",
-      location: "Library",
-      dateFound: "2024-01-15",
-      image: "/blue-water-bottle.jpg",
-      description: "A blue stainless steel water bottle found in the library reading area.",
-      reportedBy: "Sarah Lee",
-      reporterId: "21WMR11111",
-    },
-    claim: {
-      claimantName: "Alex Johnson",
-      studentId: "21WMR98765",
-      phoneNumber: "+60 12-345 6789",
-      proofDescription:
-        "It's a blue Hydro Flask with a dent on the bottom. I bought it last month at the campus bookstore.",
-    },
-  },
-  "2": {
-    item: {
-      name: "Silver Laptop",
-      location: "Study Room 3",
-      dateFound: "2024-01-17",
-      image: "/silver-laptop.jpg",
-      description: "Silver laptop found left in Study Room 3 after closing hours.",
-      reportedBy: "David Lim",
-      reporterId: "21WMR44444",
-    },
-    claim: {
-      claimantName: "Rachel Wong",
-      studentId: "21WMR11223",
-      phoneNumber: "+60 11-234 5678",
-      proofDescription:
-        "MacBook Pro 13-inch, has a 'TAR UMT' sticker on the lid and my initials 'RW' engraved on the bottom.",
-    },
-  },
-  "3": {
-    item: {
-      name: "Black Leather Wallet",
-      location: "Gym",
-      dateFound: "2024-01-14",
-      image: "/black-leather-wallet.jpg",
-      description: "Black leather wallet found in the gym locker room.",
-      reportedBy: "Emily Wong",
-      reporterId: "21WMR33333",
-    },
-    claim: {
-      claimantName: "Tom Lee",
-      studentId: "21WMR44556",
-      phoneNumber: "+60 16-789 1234",
-      proofDescription:
-        "Black leather wallet containing my student ID card and driver's license under the name Tom Lee.",
-    },
-  },
-}
-
-export default function ClaimVerificationPage({ params }: { params: { id: string } }) {
+export default function ClaimVerificationPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [rationale, setRationale] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [claim, setClaim] = useState<Awaited<ReturnType<typeof getAdminClaims>>[number] | null>(null)
+  const [item, setItem] = useState<Item | null>(null)
 
+  const { id } = use(params)
   useEffect(() => {
     // Check authentication on mount
     if (!isAuthenticated()) {
@@ -88,11 +43,52 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
     }
 
     setIsCheckingAuth(false)
-  }, [router])
 
-  const data = claimVerificationData[params.id as keyof typeof claimVerificationData]
+    const loadData = async () => {
+      try {
+        const claims = await getAdminClaims()
+        const found = claims.find((c) => c.claim_id === id)
+        if (!found) {
+          setError("Claim not found")
+          return
+        }
+        setClaim(found)
 
-  if (isCheckingAuth) {
+        const items = await getItems({ item_id: found.item_id })
+        setItem(items[0] ?? null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load claim")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [id, router])
+
+  const handleDecision = async (status: "Approved" | "Rejected") => {
+    if (!rationale.trim()) {
+      alert("Please provide a decision rationale")
+      return
+    }
+    const userInfo = getUserInfo()
+    if (!userInfo?.user_id) {
+      alert("Missing admin ID")
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await processAdminClaim({ claim_id: id, admin_id: userInfo.user_id, status })
+      alert(`Claim ${status.toLowerCase()} successfully`)
+      router.push("/admin")
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update claim")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isCheckingAuth || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -100,13 +96,13 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
     )
   }
 
-  if (!data) {
+  if (error || !claim) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar role="admin" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-lg text-muted-foreground">Claim not found</p>
+            <p className="text-lg text-muted-foreground">{error || "Claim not found"}</p>
             <Button onClick={() => router.push("/admin")} className="mt-4">
               Back to Dashboard
             </Button>
@@ -116,32 +112,17 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
     )
   }
 
-  const { item, claim } = data
+  const submittedItem = item
+  const claimDate = claim.date_claimed
+  const claimantName = claim.claimant_name
+  const proof = claim.proof_of_ownership
 
   const handleApprove = async () => {
-    if (!rationale.trim()) {
-      alert("Please provide a decision rationale")
-      return
-    }
-    setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
-      alert("Claim approved successfully!")
-      router.push("/admin")
-    }, 1000)
+    await handleDecision("Approved")
   }
 
   const handleReject = async () => {
-    if (!rationale.trim()) {
-      alert("Please provide a decision rationale")
-      return
-    }
-    setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
-      alert("Claim rejected")
-      router.push("/admin")
-    }, 1000)
+    await handleDecision("Rejected")
   }
 
   return (
@@ -173,56 +154,49 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Item Image */}
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                <Image
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
-              </div>
+              {submittedItem && (
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                  <Image
+                    src={"/placeholder.svg"}
+                    alt={submittedItem.item_name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                  />
+                </div>
+              )}
 
               {/* Item Details */}
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Item Name</label>
-                  <p className="mt-1 text-base font-semibold text-foreground">{item.name}</p>
-                </div>
-
-                {/* Reporter Information */}
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                  <label className="text-sm font-medium text-primary">Reporter Information</label>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">Reported By:</span> {item.reportedBy}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      <span className="font-medium">Student ID:</span> {item.reporterId}
-                    </p>
-                  </div>
+                  <p className="mt-1 text-base font-semibold text-foreground">{submittedItem?.item_name || "—"}</p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Location Found</label>
-                    <p className="mt-1 text-sm text-foreground">{item.location}</p>
+                    <p className="mt-1 text-sm text-foreground">{submittedItem?.location_name || "—"}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Date Found</label>
                     <p className="mt-1 text-sm text-foreground">
-                      {new Date(item.dateFound).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {submittedItem
+                        ? new Date(submittedItem.date_reported).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
                     </p>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Description</label>
-                  <p className="mt-1 text-sm leading-relaxed text-foreground">{item.description}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-foreground">
+                    {submittedItem?.description || "—"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -244,24 +218,30 @@ export default function ClaimVerificationPage({ params }: { params: { id: string
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Claimant Name</label>
-                  <p className="mt-1 text-base font-semibold text-foreground">{claim.claimantName}</p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Student ID</label>
-                    <p className="mt-1 text-sm text-foreground">{claim.studentId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
-                    <p className="mt-1 text-sm text-foreground">{claim.phoneNumber}</p>
-                  </div>
+                  <p className="mt-1 text-base font-semibold text-foreground">{claimantName}</p>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Proof of Ownership</label>
                   <div className="mt-2 rounded-lg bg-muted p-4">
-                    <p className="text-sm leading-relaxed text-foreground">{claim.proofDescription}</p>
+                    <p className="text-sm leading-relaxed text-foreground">{proof}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Date Claimed</label>
+                    <p className="mt-1 text-sm text-foreground">
+                      {new Date(claimDate).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Claim Status</label>
+                    <p className="mt-1 text-sm text-foreground">{claim.claim_status}</p>
                   </div>
                 </div>
               </div>

@@ -19,6 +19,7 @@ origins = [
     "http://127.0.0.1:3000",
     "http://192.168.200.53:3000",
     "http://172.17.4.120:3000",
+    "http://192.168.100.136:3000",
 ]
 
 # Enable CORS for React Frontend - Added immediately after app initialization
@@ -211,6 +212,29 @@ def report_found_item(item: ItemCreate):
         new_id = cur.fetchone()[0]
         conn.commit()
         return {"status": "success", "item_id": new_id}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.delete("/items/{item_id}")
+def delete_item(item_id: str):
+    """Delete an item and any related claims. Admin auth should be enforced in a real app."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Remove dependent claims if cascade is not configured
+        cur.execute("DELETE FROM CLAIM WHERE item_id = %s", (item_id,))
+        cur.execute("DELETE FROM ITEM WHERE item_id = %s RETURNING item_id", (item_id,))
+        deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Item not found")
+        conn.commit()
+        return {"status": "success", "message": "Item deleted"}
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
