@@ -117,6 +117,36 @@ export async function getStudentClaims(studentId: string): Promise<StudentClaim[
   return response.json()
 }
 
+export async function getAdminStats(): Promise<{
+  total_items: number
+  total_claimed: number
+  pending_claims: number
+}> {
+  const response = await fetch(`${API_BASE_URL}/admin/stats`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch admin stats")
+  }
+  return response.json()
+}
+
+export async function getAdminClaims(): Promise<
+  {
+    claim_id: string
+    proof_of_ownership: string
+    date_claimed: string
+    claim_status: string
+    item_name: string
+    item_id: string
+    claimant_name: string
+  }[]
+> {
+  const response = await fetch(`${API_BASE_URL}/admin/claims`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch admin claims")
+  }
+  return response.json()
+}
+
 export interface ReportItemPayload {
   item_name: string
   description: string
