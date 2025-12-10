@@ -8,16 +8,17 @@ import { Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { getUserInfo, getItems, getCategories, isAuthenticated, type Item, type Category } from "@/lib/api"
+import { getUserInfo, getItems, getCategories, getLocations, isAuthenticated, type Item, type Category, type Location } from "@/lib/api"
 
 const Home = () => {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
-  const [dateSort, setDateSort] = useState("newest")
+  const [locationFilter, setLocationFilter] = useState("All")
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [items, setItems] = useState<Item[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,9 +37,14 @@ const Home = () => {
 
     const loadData = async () => {
       try {
-        const [fetchedCategories, fetchedItems] = await Promise.all([getCategories(), getItems()])
+        const [fetchedCategories, fetchedItems, fetchedLocations] = await Promise.all([
+          getCategories(),
+          getItems(),
+          getLocations(),
+        ])
         setCategories(fetchedCategories)
         setItems(fetchedItems)
+        setLocations(fetchedLocations)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data")
       } finally {
@@ -58,15 +64,17 @@ const Home = () => {
         item.location_name.toLowerCase().includes(normalizedSearch) ||
         item.description.toLowerCase().includes(normalizedSearch)
       const matchesCategory = categoryFilter === "All" || item.category_name === categoryFilter
-      return matchesSearch && matchesCategory
+      const matchesLocation = locationFilter === "All" || item.location_name === locationFilter
+      return matchesSearch && matchesCategory && matchesLocation
     })
 
+    // Sort by date (newest first) by default
     return filtered.sort((a, b) => {
       const dateA = new Date(a.date_reported).getTime()
       const dateB = new Date(b.date_reported).getTime()
-      return dateSort === "newest" ? dateB - dateA : dateA - dateB
+      return dateB - dateA
     })
-  }, [items, searchQuery, categoryFilter, dateSort])
+  }, [items, searchQuery, categoryFilter, locationFilter])
 
   if (isCheckingAuth) {
     return (
@@ -124,12 +132,16 @@ const Home = () => {
                 ))}
               </select>
               <select
-                value={dateSort}
-                onChange={(e) => setDateSort(e.target.value)}
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
                 className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
+                <option value="All">All Locations</option>
+                {locations.map((location) => (
+                  <option key={location.location_id} value={location.location_name}>
+                    {location.location_name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
