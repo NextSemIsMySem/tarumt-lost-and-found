@@ -99,27 +99,15 @@ def login(credentials: LoginRequest):
                 (credentials.admin_id,)
             )
             admin = cur.fetchone()
-            
-            if admin and admin['password_hash']:
-                # Verify password hash - password_hash is stored as VARCHAR, encode to bytes for bcrypt
-                # Use latin-1 encoding to preserve exact byte values (1-to-1 mapping)
-                try:
-                    if isinstance(admin['password_hash'], str):
-                        password_hash_bytes = admin['password_hash'].encode('latin-1')
-                    else:
-                        password_hash_bytes = admin['password_hash']
-                    if bcrypt.checkpw(credentials.password.encode('utf-8'), password_hash_bytes):
-                        return {
-                            "status": "success",
-                            "user_id": admin['admin_id'],
-                            "username": admin['username'],
-                            "role": "admin",
-                            "token": f"fake-jwt-token-{admin['admin_id']}"
-                        }
-                except Exception as e:
-                    # Password verification failed
-                    pass
-            
+            # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
+            if admin and admin['password_hash'] and credentials.password == admin['password_hash']:
+                return {
+                    "status": "success",
+                    "user_id": admin['admin_id'],
+                    "username": admin['username'],
+                    "role": "admin",
+                    "token": f"fake-jwt-token-{admin['admin_id']}"
+                }
             raise HTTPException(status_code=401, detail="Invalid admin credentials")
         
         # Student login: Check STUDENT table using student_id
@@ -129,27 +117,15 @@ def login(credentials: LoginRequest):
                 (credentials.student_id,)
             )
             student = cur.fetchone()
-            
-            if student and student['password_hash']:
-                # Verify password hash - password_hash is stored as VARCHAR, encode to bytes for bcrypt
-                # Use latin-1 encoding to preserve exact byte values (1-to-1 mapping)
-                try:
-                    if isinstance(student['password_hash'], str):
-                        password_hash_bytes = student['password_hash'].encode('latin-1')
-                    else:
-                        password_hash_bytes = student['password_hash']
-                    if bcrypt.checkpw(credentials.password.encode('utf-8'), password_hash_bytes):
-                        return {
-                            "status": "success",
-                            "user_id": student['student_id'],
-                            "username": student['username'],
-                            "role": "student",
-                            "token": f"fake-jwt-token-{student['student_id']}"
-                        }
-                except Exception as e:
-                    # Password verification failed
-                    pass
-            
+            # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
+            if student and student['password_hash'] and credentials.password == student['password_hash']:
+                return {
+                    "status": "success",
+                    "user_id": student['student_id'],
+                    "username": student['username'],
+                    "role": "student",
+                    "token": f"fake-jwt-token-{student['student_id']}"
+                }
             raise HTTPException(status_code=401, detail="Invalid student credentials")
         
     except HTTPException:
