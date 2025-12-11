@@ -105,7 +105,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-login px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-center gap-2 mb-2">

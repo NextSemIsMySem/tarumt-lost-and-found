@@ -12,7 +12,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { getItems, submitClaim, getUserInfo, isAuthenticated, type Item } from "@/lib/api"
+import { getItems, submitClaim, getUserInfo, isAuthenticated, getStudentClaims, type Item } from "@/lib/api"
 
 export default function ClaimItemPage() {
   const params = useParams()
@@ -24,6 +24,8 @@ export default function ClaimItemPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasExistingClaim, setHasExistingClaim] = useState(false)
+  const [existingClaimStatus, setExistingClaimStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -39,9 +41,26 @@ export default function ClaimItemPage() {
 
     const loadItem = async () => {
       try {
-        const items = await getItems({ item_id: itemId })
-        setItem(items[0] || null)
-        if (!items[0]) setError("Item not found")
+        const userInfo = getUserInfo()
+        if (!userInfo) return
+
+        const [items, studentClaims] = await Promise.all([
+          getItems({ item_id: itemId }),
+          getStudentClaims(userInfo.user_id)
+        ])
+        
+        const loadedItem = items[0] || null
+        setItem(loadedItem)
+        if (!loadedItem) {
+          setError("Item not found")
+        } else {
+          // Check if student has already claimed this item
+          const existingClaim = studentClaims.find(claim => claim.item_id === itemId)
+          if (existingClaim) {
+            setHasExistingClaim(true)
+            setExistingClaimStatus(existingClaim.claim_status)
+          }
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load item")
       } finally {
@@ -88,7 +107,7 @@ export default function ClaimItemPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-primary flex items-center justify-center">
         <p className="text-muted-foreground">Loading item...</p>
       </div>
     )
@@ -96,7 +115,7 @@ export default function ClaimItemPage() {
 
   if (error || !item) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-primary">
         <Navbar />
         <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -115,7 +134,7 @@ export default function ClaimItemPage() {
   const userInfo = getUserInfo()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-primary">
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <Link href="/" className="mb-6 inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
@@ -161,10 +180,33 @@ export default function ClaimItemPage() {
             <CardHeader>
               <CardTitle>Claim Item</CardTitle>
               <CardDescription>
-                Fill out the form below to claim this item. Your information will be verified.
+                {hasExistingClaim
+                  ? `You have already submitted a claim for this item. Status: ${existingClaimStatus}`
+                  : "Fill out the form below to claim this item. Your information will be verified."}
               </CardDescription>
             </CardHeader>
-            <form onSubmit={handleSubmit}>
+            {hasExistingClaim ? (
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                  <p className="font-medium">You have already submitted a claim for this item.</p>
+                  <p className="mt-1 text-sm">
+                    Your claim status: <span className="font-semibold">{existingClaimStatus}</span>
+                  </p>
+                  <p className="mt-2 text-sm">
+                    You can only submit one claim per item. Please wait for the admin to review your existing claim.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="w-full"
+                >
+                  Back to Dashboard
+                </Button>
+              </CardContent>
+            ) : (
+              <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -216,6 +258,7 @@ export default function ClaimItemPage() {
                 </Button>
               </CardFooter>
             </form>
+            )}
           </Card>
         </div>
       </main>

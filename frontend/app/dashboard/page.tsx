@@ -8,7 +8,7 @@ import { Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { getUserInfo, getItems, getCategories, getLocations, isAuthenticated, type Item, type Category, type Location } from "@/lib/api"
+import { getUserInfo, getItems, getCategories, getLocations, isAuthenticated, getStudentClaims, type Item, type Category, type Location } from "@/lib/api"
 
 const Home = () => {
   const router = useRouter()
@@ -19,6 +19,7 @@ const Home = () => {
   const [items, setItems] = useState<Item[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [locations, setLocations] = useState<Location[]>([])
+  const [studentClaims, setStudentClaims] = useState<{ item_id: string; claim_status: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,14 +38,19 @@ const Home = () => {
 
     const loadData = async () => {
       try {
-        const [fetchedCategories, fetchedItems, fetchedLocations] = await Promise.all([
+        const userInfo = getUserInfo()
+        if (!userInfo) return
+
+        const [fetchedCategories, fetchedItems, fetchedLocations, fetchedClaims] = await Promise.all([
           getCategories(),
           getItems(),
           getLocations(),
+          getStudentClaims(userInfo.user_id),
         ])
         setCategories(fetchedCategories)
         setItems(fetchedItems)
         setLocations(fetchedLocations)
+        setStudentClaims(fetchedClaims.map(claim => ({ item_id: claim.item_id, claim_status: claim.claim_status })))
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data")
       } finally {
@@ -78,7 +84,7 @@ const Home = () => {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-pattern flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -102,7 +108,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-pattern">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
@@ -197,9 +203,21 @@ const Home = () => {
                 </div>
               </CardContent>
               <CardFooter className="p-4 pt-0">
-                <Button className="w-full" asChild>
-                  <Link href={`/claim-item/${item.item_id}`}>Claim Item</Link>
-                </Button>
+                {(() => {
+                  const existingClaim = studentClaims.find(claim => claim.item_id === item.item_id)
+                  if (existingClaim) {
+                    return (
+                      <Button className="w-full" disabled variant="outline">
+                        Already Claimed ({existingClaim.claim_status})
+                      </Button>
+                    )
+                  }
+                  return (
+                    <Button className="w-full" asChild>
+                      <Link href={`/claim-item/${item.item_id}`}>Claim Item</Link>
+                    </Button>
+                  )
+                })()}
               </CardFooter>
             </Card>
           ))}

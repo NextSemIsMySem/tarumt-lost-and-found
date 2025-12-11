@@ -90,7 +90,7 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
 
   if (isCheckingAuth || loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-admin flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -98,7 +98,7 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
 
   if (error || !claim) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-admin">
         <Navbar role="admin" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -126,7 +126,7 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-admin">
       <Navbar role="admin" />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}

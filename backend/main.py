@@ -318,6 +318,18 @@ def submit_claim(claim: ClaimCreate):
         if not item_status or item_status[0] != 'Found':
              raise HTTPException(status_code=400, detail="Item is not available for claim")
 
+        # Check if student has already submitted a claim for this item
+        cur.execute(
+            "SELECT claim_id, claim_status FROM CLAIM WHERE student_id = %s AND item_id = %s",
+            (claim.student_id, claim.item_id)
+        )
+        existing_claim = cur.fetchone()
+        if existing_claim:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"You have already submitted a claim for this item. Your previous claim status: {existing_claim[1]}"
+            )
+
         # date_claimed will be set automatically by DEFAULT CURRENT_TIMESTAMP
         # admin_id is NULL for pending claims, will be set when admin processes the claim
         cur.execute(
@@ -447,7 +459,51 @@ def process_claim(update: ClaimUpdate):
     finally:
         conn.close()
 
-# 5. ADMIN REPORT (Module 5)
+# 5. CLAIMS HISTORY (Approved & Rejected only)
+@app.get("/admin/claims/history")
+def get_claims_history():
+    # In real app, check if user is Admin here!
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT 
+                c.claim_id,
+                c.proof_of_ownership,
+                c.date_claimed,
+                c.claim_status,
+                c.admin_id,
+                i.item_id,
+                i.item_name,
+                i.description as item_description,
+                i.image_url,
+                i.date_reported,
+                i.location_id,
+                l.location_name,
+                i.category_id,
+                cat.category_name,
+                s.student_id as claimant_id,
+                s.username as claimant_name,
+                s.email as claimant_email,
+                a.username as admin_name,
+                a.email as admin_email
+            FROM CLAIM c
+            JOIN ITEM i ON c.item_id = i.item_id
+            JOIN STUDENT s ON c.student_id = s.student_id
+            JOIN LOCATION l ON i.location_id = l.location_id
+            JOIN CATEGORY cat ON i.category_id = cat.category_id
+            LEFT JOIN ADMIN a ON c.admin_id = a.admin_id
+            WHERE c.claim_status IN ('Approved', 'Rejected')
+            ORDER BY c.date_claimed DESC
+        """)
+        claims = cur.fetchall()
+        conn.close()
+        return claims
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 6. ADMIN REPORT (Module 5)
 @app.get("/admin/stats")
 def get_stats():
     conn = get_db_connection()

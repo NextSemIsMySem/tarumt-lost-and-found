@@ -66,7 +66,7 @@ export default function ItemViewPage({ params }: { params: Promise<{ id: string 
 
   if (isCheckingAuth || loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-admin flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -74,7 +74,7 @@ export default function ItemViewPage({ params }: { params: Promise<{ id: string 
 
   if (error || !item) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-admin">
         <Navbar role="admin" />
         <div className="mx-auto max-w-4xl px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-foreground">Item Not Found</h1>
@@ -88,7 +88,7 @@ export default function ItemViewPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-admin">
       <Navbar role="admin" />
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Main Card */}

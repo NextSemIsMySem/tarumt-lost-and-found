@@ -177,6 +177,36 @@ export async function processAdminClaim(payload: {
   }
 }
 
+export interface ClaimHistory {
+  claim_id: string
+  proof_of_ownership: string
+  date_claimed: string
+  claim_status: string
+  admin_id: string | null
+  item_id: string
+  item_name: string
+  item_description: string
+  image_url: string | null
+  date_reported: string
+  location_id: string
+  location_name: string
+  category_id: string
+  category_name: string
+  claimant_id: string
+  claimant_name: string
+  claimant_email: string
+  admin_name: string | null
+  admin_email: string | null
+}
+
+export async function getClaimsHistory(): Promise<ClaimHistory[]> {
+  const response = await fetch(`${API_BASE_URL}/admin/claims/history`)
+  if (!response.ok) {
+    throw new Error("Failed to fetch claims history")
+  }
+  return response.json()
+}
+
 export interface ReportItemPayload {
   item_name: string
   description: string

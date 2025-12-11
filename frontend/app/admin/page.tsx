@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Package, Clock, Eye, Trash2 } from "lucide-react"
+import { Package, Clock, Eye, Trash2, History } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-admin flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-admin flex items-center justify-center">
         <p className="text-muted-foreground">Loading admin data...</p>
       </div>
     )
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-admin flex items-center justify-center">
         <div className="text-center space-y-2">
           <p className="text-destructive">{error}</p>
           <Button variant="outline" onClick={() => router.refresh()}>
@@ -117,13 +117,25 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-admin">
       <Navbar role="admin" />
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-balance text-3xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="mt-2 text-muted-foreground">Manage lost and found items and review claims</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-balance text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="mt-2 text-muted-foreground">Manage lost and found items and review claims</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/admin/claims-history")}
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              View Claims History
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}
