@@ -204,7 +204,17 @@ const Home = () => {
               </CardContent>
               <CardFooter className="p-4 pt-0">
                 {(() => {
+                  const userInfo = getUserInfo()
+                  const isReporter = userInfo && item.student_id === userInfo.user_id
                   const existingClaim = studentClaims.find(claim => claim.item_id === item.item_id)
+                  
+                  if (isReporter) {
+                    return (
+                      <Button className="w-full" disabled variant="outline">
+                        You reported this item
+                      </Button>
+                    )
+                  }
                   if (existingClaim) {
                     return (
                       <Button className="w-full" disabled variant="outline">

@@ -23,6 +23,7 @@ export interface Item {
   category_name: string
   location_name: string
   image_url?: string | null
+  student_id?: string
 }
 
 export interface Category {

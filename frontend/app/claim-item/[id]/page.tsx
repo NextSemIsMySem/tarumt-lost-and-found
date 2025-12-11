@@ -54,11 +54,17 @@ export default function ClaimItemPage() {
         if (!loadedItem) {
           setError("Item not found")
         } else {
-          // Check if student has already claimed this item
-          const existingClaim = studentClaims.find(claim => claim.item_id === itemId)
-          if (existingClaim) {
+          // Check if student is the reporter
+          if (userInfo && loadedItem.student_id === userInfo.user_id) {
             setHasExistingClaim(true)
-            setExistingClaimStatus(existingClaim.claim_status)
+            setExistingClaimStatus("You reported this item")
+          } else {
+            // Check if student has already claimed this item
+            const existingClaim = studentClaims.find(claim => claim.item_id === itemId)
+            if (existingClaim) {
+              setHasExistingClaim(true)
+              setExistingClaimStatus(existingClaim.claim_status)
+            }
           }
         }
       } catch (err) {
@@ -181,21 +187,32 @@ export default function ClaimItemPage() {
               <CardTitle>Claim Item</CardTitle>
               <CardDescription>
                 {hasExistingClaim
-                  ? `You have already submitted a claim for this item. Status: ${existingClaimStatus}`
+                  ? existingClaimStatus === "You reported this item"
+                    ? "You cannot claim an item you reported"
+                    : `You have already submitted a claim for this item. Status: ${existingClaimStatus}`
                   : "Fill out the form below to claim this item. Your information will be verified."}
               </CardDescription>
             </CardHeader>
             {hasExistingClaim ? (
               <CardContent className="space-y-4">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
-                  <p className="font-medium">You have already submitted a claim for this item.</p>
-                  <p className="mt-1 text-sm">
-                    Your claim status: <span className="font-semibold">{existingClaimStatus}</span>
-                  </p>
-                  <p className="mt-2 text-sm">
-                    You can only submit one claim per item. Please wait for the admin to review your existing claim.
-                  </p>
-                </div>
+                {existingClaimStatus === "You reported this item" ? (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800">
+                    <p className="font-medium">You cannot claim an item you reported.</p>
+                    <p className="mt-2 text-sm">
+                      This item was reported by you. Only other users can claim it.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                    <p className="font-medium">You have already submitted a claim for this item.</p>
+                    <p className="mt-1 text-sm">
+                      Your claim status: <span className="font-semibold">{existingClaimStatus}</span>
+                    </p>
+                    <p className="mt-2 text-sm">
+                      You can only submit one claim per item. Please wait for the admin to review your existing claim.
+                    </p>
+                  </div>
+                )}
                 <Button
                   type="button"
                   variant="outline"

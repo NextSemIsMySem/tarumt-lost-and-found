@@ -189,7 +189,7 @@ def get_found_items(
     # Dynamic Query Building
     query = """
         SELECT i.item_id, i.item_name, i.description, i.status, i.date_reported,
-               c.category_name, l.location_name, i.image_url
+               c.category_name, l.location_name, i.image_url, i.student_id
         FROM ITEM i
         JOIN CATEGORY c ON i.category_id = c.category_id
         JOIN LOCATION l ON i.location_id = l.location_id
@@ -312,11 +312,24 @@ def submit_claim(claim: ClaimCreate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # Check if item is still available
-        cur.execute("SELECT status FROM ITEM WHERE item_id = %s", (claim.item_id,))
-        item_status = cur.fetchone()
-        if not item_status or item_status[0] != 'Found':
+        # Check if item exists and get its status and reporter
+        cur.execute("SELECT status, student_id FROM ITEM WHERE item_id = %s", (claim.item_id,))
+        item_data = cur.fetchone()
+        if not item_data:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        item_status = item_data[0]
+        item_reporter_id = item_data[1]
+        
+        if item_status != 'Found':
              raise HTTPException(status_code=400, detail="Item is not available for claim")
+
+        # Prevent users from claiming items they reported
+        if claim.student_id == item_reporter_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="You cannot claim an item you reported"
+            )
 
         # Check if student has already submitted a claim for this item
         cur.execute(
