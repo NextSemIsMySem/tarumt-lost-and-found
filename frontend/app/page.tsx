@@ -54,6 +54,13 @@ export default function LoginPage() {
           password: password,
         })
 
+        // Validate that the returned role matches the login mode
+        if (response.role !== "student") {
+          setError("Invalid credentials. Please use student login.")
+          setIsLoading(false)
+          return
+        }
+
         // Store authentication info
         setAuth(response.token, {
           user_id: response.user_id,
@@ -73,6 +80,13 @@ export default function LoginPage() {
           admin_id: adminId,
           password: password,
         })
+
+        // Validate that the returned role matches the login mode
+        if (response.role !== "admin") {
+          setError("Invalid credentials. Please use admin login.")
+          setIsLoading(false)
+          return
+        }
 
         // Store authentication info
         setAuth(response.token, {

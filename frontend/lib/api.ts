@@ -118,6 +118,16 @@ export async function getStudentClaims(studentId: string): Promise<StudentClaim[
   return response.json()
 }
 
+export async function deleteClaim(claimId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/claims/${claimId}`, {
+    method: "DELETE",
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to delete claim" }))
+    throw new Error(error.detail || "Failed to delete claim")
+  }
+}
+
 export async function getAdminStats(): Promise<{
   total_items: number
   total_claimed: number

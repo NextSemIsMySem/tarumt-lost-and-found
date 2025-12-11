@@ -113,6 +113,11 @@ def login(credentials: LoginRequest):
             admin = cur.fetchone()
             # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
             if admin and admin['password'] and credentials.password == admin['password']:
+                # Additional security: Verify this ID is NOT in the STUDENT table
+                cur.execute("SELECT student_id FROM STUDENT WHERE student_id = %s", (credentials.admin_id,))
+                if cur.fetchone():
+                    raise HTTPException(status_code=403, detail="Invalid credentials: ID exists in student records")
+                
                 return {
                     "status": "success",
                     "user_id": admin['admin_id'],
@@ -131,6 +136,11 @@ def login(credentials: LoginRequest):
             student = cur.fetchone()
             # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
             if student and student['password'] and credentials.password == student['password']:
+                # Additional security: Verify this ID is NOT in the ADMIN table
+                cur.execute("SELECT admin_id FROM ADMIN WHERE admin_id = %s", (credentials.student_id,))
+                if cur.fetchone():
+                    raise HTTPException(status_code=403, detail="Invalid credentials: ID exists in admin records")
+                
                 return {
                     "status": "success",
                     "user_id": student['student_id'],
@@ -368,6 +378,39 @@ def get_student_claims(student_id: str):
         claims = cur.fetchall()
         return claims
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.delete("/claims/{claim_id}")
+def delete_claim(claim_id: str):
+    """Delete a claim. Only allow deletion if status is not 'Approved'."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Check if claim exists and get its status
+        cur.execute("SELECT claim_status FROM CLAIM WHERE claim_id = %s", (claim_id,))
+        claim = cur.fetchone()
+        if not claim:
+            raise HTTPException(status_code=404, detail="Claim not found")
+        
+        # Prevent deletion of approved claims
+        if claim[0] == 'Approved':
+            raise HTTPException(status_code=400, detail="Cannot delete an approved claim")
+        
+        # Delete the claim
+        cur.execute("DELETE FROM CLAIM WHERE claim_id = %s RETURNING claim_id", (claim_id,))
+        deleted = cur.fetchone()
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Claim not found")
+        
+        conn.commit()
+        return {"status": "success", "message": "Claim deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()

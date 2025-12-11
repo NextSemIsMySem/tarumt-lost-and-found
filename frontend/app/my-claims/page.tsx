@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { getStudentClaims, getUserInfo } from "@/lib/api"
+import { getStudentClaims, getUserInfo, deleteClaim } from "@/lib/api"
 
 type ClaimStatus = "Pending" | "Approved" | "Rejected"
 
@@ -52,9 +52,44 @@ export default function MyClaimsPage() {
     loadClaims()
   }, [])
 
-  const handleDelete = (claimId: string) => {
-    console.log("[v0] Delete claim:", claimId)
-    setClaims(claims.filter((claim) => claim.id !== claimId))
+  const handleDelete = async (claimId: string) => {
+    // Find the claim to show in confirmation message
+    const claim = claims.find((c) => c.id === claimId)
+    const itemName = claim?.itemName || "this claim"
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete your claim for "${itemName}"?\n\nThis action cannot be undone.`
+    )
+    
+    if (!confirmed) {
+      return // User cancelled, do nothing
+    }
+    
+    try {
+      await deleteClaim(claimId)
+      // Only update UI after successful deletion
+      setClaims(claims.filter((claim) => claim.id !== claimId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete claim.")
+      // Optionally reload claims to sync with backend
+      const user = getUserInfo()
+      if (user) {
+        try {
+          const data = await getStudentClaims(user.user_id)
+          setClaims(
+            data.map((claim) => ({
+              id: claim.claim_id,
+              itemName: claim.item_name,
+              dateClaimed: claim.date_claimed,
+              status: claim.claim_status as ClaimStatus,
+            }))
+          )
+        } catch (reloadErr) {
+          // If reload fails, keep the error message
+        }
+      }
+    }
   }
 
   const getStatusBadgeColor = (status: ClaimStatus) => {
