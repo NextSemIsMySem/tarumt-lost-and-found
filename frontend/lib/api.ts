@@ -22,6 +22,7 @@ export interface Item {
   date_reported: string
   category_name: string
   location_name: string
+  image_url?: string | null
 }
 
 export interface Category {
@@ -172,6 +173,7 @@ export interface ReportItemPayload {
   category_id: string
   location_id: string
   student_id: string
+  image_url?: string | null
 }
 
 export async function submitFoundItem(payload: ReportItemPayload): Promise<void> {
@@ -195,6 +197,24 @@ export async function deleteItem(itemId: string): Promise<void> {
     const error = await response.json().catch(() => ({ detail: "Failed to delete item" }))
     throw new Error(error.detail || "Failed to delete item")
   }
+}
+
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const response = await fetch(`${API_BASE_URL}/upload`, {
+    method: "POST",
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to upload image" }))
+    throw new Error(error.detail || "Failed to upload image")
+  }
+
+  const data = await response.json()
+  return data.url
 }
 
 export function getAuthToken(): string | null {

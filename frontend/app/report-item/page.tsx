@@ -12,11 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, Calendar } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCategories, getLocations, submitFoundItem, getUserInfo, type Category, type Location } from "@/lib/api"
+import { getCategories, getLocations, submitFoundItem, getUserInfo, uploadImage, type Category, type Location } from "@/lib/api"
 
 export default function ReportItemPage() {
   const router = useRouter()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,12 +69,27 @@ export default function ReportItemPage() {
 
     try {
       setSubmitting(true)
+      
+      // Upload image if one is selected
+      let uploadedImageUrl: string | null = null
+      if (selectedFile) {
+        try {
+          uploadedImageUrl = await uploadImage(selectedFile)
+          setImageUrl(uploadedImageUrl)
+        } catch (uploadErr) {
+          setError(uploadErr instanceof Error ? uploadErr.message : "Failed to upload image")
+          setSubmitting(false)
+          return
+        }
+      }
+
       await submitFoundItem({
         item_name: formData.itemName,
         description: formData.description,
         category_id: formData.category_id,
         location_id: formData.location_id,
         student_id: user.user_id,
+        image_url: uploadedImageUrl || null,
       })
       router.push("/dashboard")
     } catch (err) {

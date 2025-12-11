@@ -95,13 +95,19 @@ export default function ItemViewPage({ params }: { params: Promise<{ id: string 
         <Card className="overflow-hidden">
           {/* Item Image */}
           <div className="relative aspect-video w-full overflow-hidden bg-muted">
-            <Image
-              src={(item as any).image || "/placeholder.svg"}
-              alt={item.item_name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
+            {item.image_url ? (
+              <Image
+                src={item.image_url}
+                alt={item.item_name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                <p>No image available</p>
+              </div>
+            )}
           </div>
 
           <CardContent className="p-6 sm:p-8">

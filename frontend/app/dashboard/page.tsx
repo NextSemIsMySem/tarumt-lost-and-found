@@ -163,7 +163,13 @@ const Home = () => {
           {filteredItems.map((item) => (
             <Card key={item.item_id} className="overflow-hidden">
               <div className="aspect-video w-full overflow-hidden bg-muted">
-                <img src={"/placeholder.svg"} alt={item.item_name} className="h-full w-full object-cover" />
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.item_name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                    No image
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="mb-2 text-balance text-lg font-semibold text-foreground">{item.item_name}</h3>

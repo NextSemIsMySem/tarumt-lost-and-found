@@ -127,7 +127,13 @@ export default function ClaimItemPage() {
           <Card className="md:col-span-1">
             <CardHeader className="p-0">
               <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-muted">
-                <img src={"/placeholder.svg"} alt={item.item_name} className="h-full w-full object-cover" />
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.item_name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                    No image
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-4">

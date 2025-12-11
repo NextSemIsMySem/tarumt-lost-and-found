@@ -1,15 +1,26 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date, datetime
-import bcrypt
+from supabase import create_client, Client
+import os
+import uuid
 
 # --- CONFIGURATION ---
-# Neon DB connection string
-DB_URL = "postgresql://neondb_owner:npg_jGZ6UEg4Cnte@ep-flat-haze-a1tp3x3c-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+# Supabase DB connection string
+DB_URL = "postgresql://postgres.egykldiebvqvecytyyva:niamajibaiez@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
+
+# Supabase Storage configuration
+# Get these from Supabase Dashboard → Settings → API
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://egykldiebvqvecytyyva.supabase.co")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVneWtsZGllYnZxdmVjeXR5eXZhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTM3NjYxOSwiZXhwIjoyMDgwOTUyNjE5fQ.Cxe6ueY-lNjDi016srEEzkEB3qrjj-8BogeFV1jIhUU")  # Set this in environment or replace with your key
+STORAGE_BUCKET = "found-item-images"  # Your bucket name
+
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else None
 
 app = FastAPI()
 
@@ -96,12 +107,12 @@ def login(credentials: LoginRequest):
         # Admin login: Check ADMIN table using admin_id
         if credentials.admin_id:
             cur.execute(
-                "SELECT admin_id, username, email, password_hash FROM ADMIN WHERE admin_id = %s",
+                "SELECT admin_id, username, email, password FROM ADMIN WHERE admin_id = %s",
                 (credentials.admin_id,)
             )
             admin = cur.fetchone()
             # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
-            if admin and admin['password_hash'] and credentials.password == admin['password_hash']:
+            if admin and admin['password'] and credentials.password == admin['password']:
                 return {
                     "status": "success",
                     "user_id": admin['admin_id'],
@@ -114,12 +125,12 @@ def login(credentials: LoginRequest):
         # Student login: Check STUDENT table using student_id
         if credentials.student_id:
             cur.execute(
-                "SELECT student_id, username, email, password_hash FROM STUDENT WHERE student_id = %s",
+                "SELECT student_id, username, email, password FROM STUDENT WHERE student_id = %s",
                 (credentials.student_id,)
             )
             student = cur.fetchone()
             # TEMPORARY (testing): compare plaintext passwords; remove bcrypt requirement
-            if student and student['password_hash'] and credentials.password == student['password_hash']:
+            if student and student['password'] and credentials.password == student['password']:
                 return {
                     "status": "success",
                     "user_id": student['student_id'],
@@ -168,7 +179,7 @@ def get_found_items(
     # Dynamic Query Building
     query = """
         SELECT i.item_id, i.item_name, i.description, i.status, i.date_reported,
-               c.category_name, l.location_name
+               c.category_name, l.location_name, i.image_url
         FROM ITEM i
         JOIN CATEGORY c ON i.category_id = c.category_id
         JOIN LOCATION l ON i.location_id = l.location_id
@@ -203,11 +214,11 @@ def report_found_item(item: ItemCreate):
         # date_reported will be set automatically by DEFAULT CURRENT_TIMESTAMP
         cur.execute(
             """
-            INSERT INTO ITEM (item_name, description, category_id, location_id, student_id, status)
-            VALUES (%s, %s, %s, %s, %s, 'Found')
+            INSERT INTO ITEM (item_name, description, category_id, location_id, student_id, status, image_url)
+            VALUES (%s, %s, %s, %s, %s, 'Found', %s)
             RETURNING item_id
             """,
-            (item.item_name, item.description, item.category_id, item.location_id, item.student_id)
+            (item.item_name, item.description, item.category_id, item.location_id, item.student_id, item.image_url)
         )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -217,6 +228,50 @@ def report_found_item(item: ItemCreate):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+# Image Upload Endpoint
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    """Upload image to Supabase Storage and return public URL"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase client not configured. Please set SUPABASE_SERVICE_KEY.")
+    
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Read file
+        file_data = await file.read()
+        
+        # Check file size (5MB limit)
+        if len(file_data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+        
+        # Generate unique filename
+        file_ext = os.path.splitext(file.filename or '')[1] or '.jpg'
+        file_name = f"{uuid.uuid4().hex}{file_ext}"
+        file_path = f"items/{file_name}"
+        
+        # Upload to Supabase Storage
+        response = supabase.storage.from_(STORAGE_BUCKET).upload(
+            file_path,
+            file_data,
+            file_options={"content-type": file.content_type}
+        )
+        
+        # Check for upload errors
+        if hasattr(response, 'error') and response.error:
+            raise HTTPException(status_code=500, detail=f"Upload failed: {response.error}")
+        
+        # Get public URL
+        public_url = supabase.storage.from_(STORAGE_BUCKET).get_public_url(file_path)
+        
+        return {"url": public_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 @app.delete("/items/{item_id}")
@@ -254,12 +309,11 @@ def submit_claim(claim: ClaimCreate):
              raise HTTPException(status_code=400, detail="Item is not available for claim")
 
         # date_claimed will be set automatically by DEFAULT CURRENT_TIMESTAMP
-        # Note: admin_id is NOT NULL in schema, so we use a placeholder admin_id
-        # This will be updated to the actual processing admin when the claim is processed
+        # admin_id is NULL for pending claims, will be set when admin processes the claim
         cur.execute(
             """
             INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id)
-            VALUES (%s, %s, %s, 'Pending', (SELECT admin_id FROM ADMIN LIMIT 1))
+            VALUES (%s, %s, %s, 'Pending', NULL)
             RETURNING claim_id
             """,
             (claim.student_id, claim.item_id, claim.proof_of_ownership)
