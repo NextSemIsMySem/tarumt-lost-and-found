@@ -21,6 +21,7 @@ import {
 export default function ClaimVerificationPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [rationale, setRationale] = useState("")
+  const [rationaleError, setRationaleError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -67,22 +68,22 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
   }, [id, router])
 
   const handleDecision = async (status: "Approved" | "Rejected") => {
+    setRationaleError(null)
     if (!rationale.trim()) {
-      alert("Please provide a decision rationale")
+      setRationaleError("Decision rationale is required.")
       return
     }
     const userInfo = getUserInfo()
     if (!userInfo?.user_id) {
-      alert("Missing admin ID")
+      setRationaleError("Missing admin ID")
       return
     }
     setIsSubmitting(true)
     try {
       await processAdminClaim({ claim_id: id, admin_id: userInfo.user_id, status })
-      alert(`Claim ${status.toLowerCase()} successfully`)
       router.push("/admin")
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update claim")
+      setRationaleError(err instanceof Error ? err.message : "Failed to update claim")
     } finally {
       setIsSubmitting(false)
     }
@@ -266,11 +267,16 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
               <Textarea
                 id="rationale"
                 value={rationale}
-                onChange={(e) => setRationale(e.target.value)}
+                onChange={(e) => {
+                  setRationale(e.target.value)
+                  setRationaleError(null)
+                }}
                 placeholder="Enter your rationale here... (e.g., The proof provided matches the item description and the claimant provided verifiable details)"
                 className="mt-2 min-h-[120px]"
                 required
+                aria-invalid={!!rationaleError}
               />
+              {rationaleError && <p className="text-sm text-destructive mt-1">{rationaleError}</p>}
             </div>
 
             {/* Action Buttons */}

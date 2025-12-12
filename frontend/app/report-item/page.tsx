@@ -125,7 +125,7 @@ export default function ReportItemPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               {/* Item Name */}
               <div className="space-y-2">
                 <Label htmlFor="itemName">
@@ -251,7 +251,14 @@ export default function ReportItemPage() {
                   Photo Upload <span className="text-destructive">*</span>
                 </Label>
                 <div className="flex items-center gap-4">
-                  <Input id="photo" type="file" accept="image/*" onChange={handleFileChange} className="hidden" required />
+                  <Input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    aria-invalid={!!fieldErrors.photo}
+                  />
                   <Label
                     htmlFor="photo"
                     className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors ${
