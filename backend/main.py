@@ -10,7 +10,7 @@ import os
 import uuid
 
 # --- CONFIGURATION ---
-# Supabase DB connection string
+# Supabase DB connection string (with SSL requirement)
 DB_URL = "postgresql://postgres.egykldiebvqvecytyyva:niamajibaiez@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
 
 # Supabase Storage configuration
@@ -46,11 +46,31 @@ app.add_middleware(
 # --- DATABASE HELPER ---
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DB_URL)
+        # Supabase requires SSL connections - use connection parameters
+        # Parse the connection string and add SSL requirement
+        conn = psycopg2.connect(
+            DB_URL,
+            sslmode='require'
+        )
         return conn
+    except psycopg2.OperationalError as e:
+        error_msg = str(e)
+        print(f"Database connection failed (OperationalError): {error_msg}")
+        # Provide more specific error details
+        if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Database connection timeout - check network/firewall settings")
+        elif "could not resolve hostname" in error_msg.lower() or "name resolution" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Cannot resolve database hostname - check DNS/network connectivity")
+        elif "connection refused" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Connection refused - database server may be down or port blocked")
+        elif "ssl" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="SSL connection error - Supabase requires SSL connections")
+        else:
+            raise HTTPException(status_code=500, detail=f"Database connection error: {error_msg}")
     except Exception as e:
-        print(f"Database connection failed: {e}")
-        raise HTTPException(status_code=500, detail="Database connection error")
+        error_msg = str(e)
+        print(f"Database connection failed: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Database connection error: {error_msg}")
 
 # --- PYDANTIC MODELS (Data Validation) ---
 
