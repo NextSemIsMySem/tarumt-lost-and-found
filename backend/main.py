@@ -92,7 +92,7 @@ class ItemCreate(BaseModel):
     category_id: str  # VARCHAR(3) format: CT%
     location_id: str  # VARCHAR(3) format: L__
     student_id: str  # VARCHAR(7) format: ST%
-    image_url: Optional[str] = None
+    image_url: str  # Required - NOT NULL in database
 
 class ClaimCreate(BaseModel):
     item_id: str  # VARCHAR(5) format: IT###
@@ -241,6 +241,10 @@ def report_found_item(item: ItemCreate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # Validate that image_url is provided and not empty
+        if not item.image_url or not item.image_url.strip():
+            raise HTTPException(status_code=400, detail="image_url is required and cannot be empty")
+        
         # date_reported will be set automatically by DEFAULT CURRENT_TIMESTAMP
         cur.execute(
             """
@@ -253,6 +257,8 @@ def report_found_item(item: ItemCreate):
         new_id = cur.fetchone()[0]
         conn.commit()
         return {"status": "success", "item_id": new_id}
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

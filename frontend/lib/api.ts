@@ -22,7 +22,7 @@ export interface Item {
   date_reported: string
   category_name: string
   location_name: string
-  image_url?: string | null
+  image_url: string  // Required - NOT NULL in database
   student_id?: string
 }
 
@@ -187,7 +187,7 @@ export interface ClaimHistory {
   item_id: string
   item_name: string
   item_description: string
-  image_url: string | null
+  image_url: string  // Required - NOT NULL in database
   date_reported: string
   location_id: string
   location_name: string
@@ -214,7 +214,7 @@ export interface ReportItemPayload {
   category_id: string
   location_id: string
   student_id: string
-  image_url?: string | null
+  image_url: string  // Required - NOT NULL in database
 }
 
 export async function submitFoundItem(payload: ReportItemPayload): Promise<void> {
