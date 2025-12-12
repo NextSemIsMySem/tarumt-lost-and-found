@@ -46,8 +46,14 @@ export interface StudentClaim {
   claim_id: string
   item_id: string
   item_name: string
+  item_description: string
+  image_url: string
+  proof_of_ownership: string
   date_claimed: string
   claim_status: string
+  rationale: string | null
+  admin_name: string | null
+  admin_email: string | null
 }
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {

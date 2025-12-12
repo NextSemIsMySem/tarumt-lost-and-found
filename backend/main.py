@@ -103,6 +103,7 @@ class ClaimUpdate(BaseModel):
     claim_id: str  # VARCHAR(5) format: C####
     admin_id: str  # VARCHAR(5) format: AT% - Admin processing the claim
     status: str  # 'Approved' or 'Rejected'
+    rationale: Optional[str] = None  # Admin's rationale for approval/rejection
 
 # --- API ENDPOINTS ---
 
@@ -417,10 +418,17 @@ def get_student_claims(student_id: str):
             SELECT c.claim_id,
                    c.item_id,
                    i.item_name,
+                   i.description AS item_description,
+                   i.image_url,
                    c.date_claimed,
-                   c.claim_status
+                   c.claim_status,
+                   c.rationale,
+                   c.proof_of_ownership,
+                   a.username AS admin_name,
+                   a.email AS admin_email
             FROM CLAIM c
             JOIN ITEM i ON c.item_id = i.item_id
+            LEFT JOIN ADMIN a ON c.admin_id = a.admin_id
             WHERE c.student_id = %s
             ORDER BY c.date_claimed DESC
             """,
@@ -475,8 +483,8 @@ def process_claim(update: ClaimUpdate):
     try:
         # 1. Update Claim Status and set admin_id (admin processing the claim)
         cur.execute(
-            "UPDATE CLAIM SET claim_status = %s, admin_id = %s WHERE claim_id = %s RETURNING item_id",
-            (update.status, update.admin_id, update.claim_id)
+            "UPDATE CLAIM SET claim_status = %s, admin_id = %s, rationale = %s WHERE claim_id = %s RETURNING item_id",
+            (update.status, update.admin_id, update.rationale, update.claim_id)
         )
         result = cur.fetchone()
         if not result:
@@ -511,6 +519,7 @@ def get_claims_history():
                 c.proof_of_ownership,
                 c.date_claimed,
                 c.claim_status,
+                c.rationale,
                 c.admin_id,
                 i.item_id,
                 i.item_name,
