@@ -169,6 +169,7 @@ export async function processAdminClaim(payload: {
   claim_id: string
   admin_id: string
   status: "Approved" | "Rejected"
+  rationale: string
 }): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/admin/claims`, {
     method: "PUT",

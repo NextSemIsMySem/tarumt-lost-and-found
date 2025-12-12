@@ -103,7 +103,7 @@ class ClaimUpdate(BaseModel):
     claim_id: str  # VARCHAR(5) format: C####
     admin_id: str  # VARCHAR(5) format: AT% - Admin processing the claim
     status: str  # 'Approved' or 'Rejected'
-    rationale: Optional[str] = None  # Admin's rationale for approval/rejection
+    rationale: str  # Admin's rationale for approval/rejection (required for DB NOT NULL)
 
 # --- API ENDPOINTS ---
 
@@ -481,10 +481,14 @@ def process_claim(update: ClaimUpdate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        rationale = (update.rationale or "").strip()
+        if not rationale:
+            raise HTTPException(status_code=400, detail="Rationale is required")
+
         # 1. Update Claim Status and set admin_id (admin processing the claim)
         cur.execute(
             "UPDATE CLAIM SET claim_status = %s, admin_id = %s, rationale = %s WHERE claim_id = %s RETURNING item_id",
-            (update.status, update.admin_id, update.rationale, update.claim_id)
+            (update.status, update.admin_id, rationale, update.claim_id)
         )
         result = cur.fetchone()
         if not result:

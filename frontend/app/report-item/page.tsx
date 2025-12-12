@@ -67,10 +67,10 @@ export default function ReportItemPage() {
     const errors: Record<string, string> = {}
 
     if (!formData.itemName.trim()) errors.itemName = "Item name is required."
-    if (!formData.description.trim()) errors.description = "Description is required."
     if (!formData.category_id) errors.category_id = "Category is required."
     if (!formData.location_id) errors.location_id = "Location is required."
     if (!formData.dateFound) errors.dateFound = "Date found is required."
+    if (!formData.description.trim()) errors.description = "Description is required."
     if (!selectedFile) errors.photo = "Please upload an image of the found item."
 
     setFieldErrors(errors)
@@ -243,6 +243,7 @@ export default function ReportItemPage() {
                 <p className="text-sm text-muted-foreground">
                   Be as specific as possible to help owners identify their items.
                 </p>
+                {fieldErrors.description && <p className="text-sm text-destructive">{fieldErrors.description}</p>}
               </div>
 
               {/* Photo Upload */}
@@ -276,7 +277,7 @@ export default function ReportItemPage() {
                   Upload a photo of the found item to help with identification.
                 </p>
                 {fieldErrors.photo && (
-                  <p className="text-sm font-medium text-destructive mt-1">{fieldErrors.photo}</p>
+                  <p className="text-sm text-destructive">{fieldErrors.photo}</p>
                 )}
               </div>
 

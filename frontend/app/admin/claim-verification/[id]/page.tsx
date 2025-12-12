@@ -80,7 +80,7 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
     }
     setIsSubmitting(true)
     try {
-      await processAdminClaim({ claim_id: id, admin_id: userInfo.user_id, status })
+      await processAdminClaim({ claim_id: id, admin_id: userInfo.user_id, status, rationale: rationale.trim() })
       router.push("/admin")
     } catch (err) {
       setRationaleError(err instanceof Error ? err.message : "Failed to update claim")
