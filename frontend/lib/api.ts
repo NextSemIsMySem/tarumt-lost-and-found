@@ -190,6 +190,7 @@ export interface ClaimHistory {
   proof_of_ownership: string
   date_claimed: string
   claim_status: string
+  rationale: string | null
   admin_id: string | null
   item_id: string
   item_name: string
