@@ -204,7 +204,13 @@ export default function MyClaimsPage() {
             <div className="flex items-center justify-between border-b px-6 py-4">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Claimed on {new Date(selectedClaim.dateClaimed).toLocaleDateString()}
+                Claimed on {
+                  new Date(selectedClaim.dateClaimed).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })
+                }
                 </p>
                 <h2 className="text-xl font-semibold text-foreground">{selectedClaim.itemName}</h2>
               </div>

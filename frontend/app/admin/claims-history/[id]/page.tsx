@@ -118,13 +118,11 @@ export default function ClaimHistoryDetailPage({ params }: { params: Promise<{ i
             Claim ID: {claim.claim_id}
           </p>
           <p className="text-sm text-muted-foreground">
-            Processed on{" "}
+            Claimed on{" "}
             {new Date(claim.date_claimed).toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
             })}
           </p>
         </div>

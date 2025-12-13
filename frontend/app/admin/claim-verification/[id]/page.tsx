@@ -158,7 +158,7 @@ export default function ClaimVerificationPage({ params }: { params: Promise<{ id
               {submittedItem && (
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
                   <Image
-                    src={"/placeholder.svg"}
+                    src={submittedItem.image_url}
                     alt={submittedItem.item_name}
                     fill
                     className="object-cover"
