@@ -54,6 +54,13 @@ export default function ReportItemPage() {
     })
   }
 
+  // Get yesterday's date in YYYY-MM-DD format (maximum selectable date)
+  const getMaxDate = (): string => {
+    const today = new Date()
+    today.setDate(today.getDate())
+    return today.toISOString().split('T')[0]
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0])
@@ -69,7 +76,18 @@ export default function ReportItemPage() {
     if (!formData.itemName.trim()) errors.itemName = "Item name is required."
     if (!formData.category_id) errors.category_id = "Category is required."
     if (!formData.location_id) errors.location_id = "Location is required."
-    if (!formData.dateFound) errors.dateFound = "Date found is required."
+    if (!formData.dateFound) {
+      errors.dateFound = "Date found is required."
+    } else {
+      // Validate that the date is not today or in the future
+      const selectedDate = new Date(formData.dateFound)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      selectedDate.setHours(0, 0, 0, 0)
+      if (selectedDate >= today) {
+        errors.dateFound = "Date found must be today or before."
+      }
+    }
     if (!formData.description.trim()) errors.description = "Description is required."
     if (!selectedFile) errors.photo = "Please upload an image of the found item."
 
@@ -215,11 +233,15 @@ export default function ReportItemPage() {
                       setFormData({ ...formData, dateFound: e.target.value })
                       clearFieldError("dateFound")
                     }}
+                    max={getMaxDate()}
                     className="pr-10"
                     required
                   />
                   <Calendar className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Only dates before today can be selected.
+                </p>
                 {fieldErrors.dateFound && <p className="text-sm text-destructive">{fieldErrors.dateFound}</p>}
               </div>
 

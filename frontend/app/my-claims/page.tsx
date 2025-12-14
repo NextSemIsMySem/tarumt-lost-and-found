@@ -95,9 +95,16 @@ export default function MyClaimsPage() {
           setClaims(
             data.map((claim) => ({
               id: claim.claim_id,
+              itemId: claim.item_id,
               itemName: claim.item_name,
+              itemDescription: claim.item_description,
+              imageUrl: claim.image_url,
+              proofOfOwnership: claim.proof_of_ownership,
               dateClaimed: claim.date_claimed,
               status: claim.claim_status as ClaimStatus,
+              rationale: claim.rationale,
+              adminName: claim.admin_name,
+              adminEmail: claim.admin_email,
             }))
           )
         } catch (reloadErr) {
@@ -244,9 +251,19 @@ export default function MyClaimsPage() {
               <div className="md:col-span-2 space-y-4">
                 <div>
                   <p className="text-sm font-semibold text-foreground">Item Description</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedClaim.itemDescription || "No description provided."}
-                  </p>
+                  {selectedClaim.status === "Pending" ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mt-2 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                      <p className="text-sm font-medium">Description not yet available</p>
+                      <p className="mt-2 text-sm">
+                        The item description is hidden while your claim is under review. This prevents you from copying the description as proof of ownership. <br /> <br />
+                        Please provide your own detailed description of the item based on your memory and knowledge to prove that it belongs to you.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedClaim.itemDescription || "No description provided."}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">Proof of Ownership</p>
@@ -257,7 +274,11 @@ export default function MyClaimsPage() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">Rationale</p>
                   <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    {selectedClaim.rationale || "No rationale provided."}
+                    {selectedClaim.status === "Pending"
+                      ? "Admin is still reviewing your claim."
+                      : selectedClaim.status === "Rejected"
+                      ? selectedClaim.rationale || "The system automatically rejects your claim as an admin had approved another claim for this item."
+                      : selectedClaim.rationale || "No rationale provided."}
                   </p>
                 </div>
               </div>

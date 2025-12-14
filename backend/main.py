@@ -370,12 +370,12 @@ def submit_claim(claim: ClaimCreate):
                 detail=f"You have already submitted a claim for this item. Your previous claim status: {existing_claim[1]}"
             )
 
-        # date_claimed will be set automatically by DEFAULT CURRENT_TIMESTAMP
+        # date_claimed will be set automatically with DEFAULT CURRENT_TIMESTAMP
         # admin_id is NULL for pending claims, will be set when admin processes the claim
         cur.execute(
             """
-            INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id)
-            VALUES (%s, %s, %s, 'Pending', NULL)
+            INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id, date_claimed)
+            VALUES (%s, %s, %s, 'Pending', NULL, CURRENT_TIMESTAMP)
             RETURNING claim_id
             """,
             (claim.student_id, claim.item_id, claim.proof_of_ownership)

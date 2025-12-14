@@ -259,7 +259,7 @@ export default function ClaimHistoryDetailPage({ params }: { params: Promise<{ i
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Admin information not available
+                      This claim is automatically rejected by the system. This is because an admin had approved another claim for this item.
                     </p>
                   )}
                 </div>
