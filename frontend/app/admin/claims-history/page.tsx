@@ -145,8 +145,6 @@ export default function ClaimsHistoryPage() {
                           year: "numeric",
                           month: "short",
                           day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
                         })}
                       </td>
                       <td className="py-4 px-4 text-sm text-muted-foreground">

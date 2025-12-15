@@ -22,7 +22,7 @@ export interface Item {
   date_reported: string
   category_name: string
   location_name: string
-  image_url?: string | null
+  image_url: string  // Required - NOT NULL in database
   student_id?: string
 }
 
@@ -46,8 +46,14 @@ export interface StudentClaim {
   claim_id: string
   item_id: string
   item_name: string
+  item_description: string
+  image_url: string
+  proof_of_ownership: string
   date_claimed: string
   claim_status: string
+  rationale: string | null
+  admin_name: string | null
+  admin_email: string | null
 }
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
@@ -163,6 +169,7 @@ export async function processAdminClaim(payload: {
   claim_id: string
   admin_id: string
   status: "Approved" | "Rejected"
+  rationale: string
 }): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/admin/claims`, {
     method: "PUT",
@@ -183,11 +190,12 @@ export interface ClaimHistory {
   proof_of_ownership: string
   date_claimed: string
   claim_status: string
+  rationale: string | null
   admin_id: string | null
   item_id: string
   item_name: string
   item_description: string
-  image_url: string | null
+  image_url: string  // Required - NOT NULL in database
   date_reported: string
   location_id: string
   location_name: string
@@ -214,7 +222,7 @@ export interface ReportItemPayload {
   category_id: string
   location_id: string
   student_id: string
-  image_url?: string | null
+  image_url: string  // Required - NOT NULL in database
 }
 
 export async function submitFoundItem(payload: ReportItemPayload): Promise<void> {

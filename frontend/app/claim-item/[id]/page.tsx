@@ -21,6 +21,7 @@ export default function ClaimItemPage() {
 
   const [item, setItem] = useState<Item | null>(null)
   const [proofOfOwnership, setProofOfOwnership] = useState("")
+  const [fieldError, setFieldError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -79,15 +80,16 @@ export default function ClaimItemPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFieldError(null)
 
     if (!proofOfOwnership.trim() || !item) {
-      alert("Please provide proof of ownership description")
+      setFieldError("Please describe the item to prove ownership.")
       return
     }
 
     const userInfo = getUserInfo()
     if (!userInfo) {
-      alert("You must be logged in to submit a claim.")
+      setFieldError("You must be logged in to submit a claim.")
       return
     }
 
@@ -98,10 +100,9 @@ export default function ClaimItemPage() {
         student_id: userInfo.user_id,
         proof_of_ownership: proofOfOwnership,
       })
-      alert("Claim submitted successfully! You will be contacted soon.")
       router.push("/")
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to submit claim")
+      setFieldError(err instanceof Error ? err.message : "Failed to submit claim")
     } finally {
       setIsSubmitting(false)
     }
@@ -246,15 +247,20 @@ export default function ClaimItemPage() {
                   <Label htmlFor="proofOfOwnership">
                     Description / Proof of Ownership <span className="text-destructive">*</span>
                   </Label>
-                  <Textarea
-                    id="proofOfOwnership"
-                    placeholder="Describe the item in detail to prove ownership (e.g., color, brand, distinguishing features, contents, purchase date, etc.)"
-                    rows={6}
-                    value={proofOfOwnership}
-                    onChange={(e) => setProofOfOwnership(e.target.value)}
-                    required
-                    className="resize-none"
-                  />
+                    <Textarea
+                      id="proofOfOwnership"
+                      placeholder="Describe the item in detail to prove ownership (e.g., color, brand, distinguishing features, contents, purchase date, etc.)"
+                      rows={6}
+                      value={proofOfOwnership}
+                      onChange={(e) => {
+                        setProofOfOwnership(e.target.value)
+                        setFieldError(null)
+                      }}
+                      required
+                      aria-invalid={!!fieldError}
+                      className="resize-none"
+                    />
+                  {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
                   <p className="text-xs text-muted-foreground">
                     Provide as much detail as possible to help us verify your claim.
                   </p>

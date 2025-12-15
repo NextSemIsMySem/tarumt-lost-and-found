@@ -67,8 +67,7 @@ const Home = () => {
     const filtered = items.filter((item) => {
       const matchesSearch =
         item.item_name.toLowerCase().includes(normalizedSearch) ||
-        item.location_name.toLowerCase().includes(normalizedSearch) ||
-        item.description.toLowerCase().includes(normalizedSearch)
+        item.location_name.toLowerCase().includes(normalizedSearch)
       const matchesCategory = categoryFilter === "All" || item.category_name === categoryFilter
       const matchesLocation = locationFilter === "All" || item.location_name === locationFilter
       return matchesSearch && matchesCategory && matchesLocation

@@ -111,36 +111,32 @@ export default function ClaimHistoryDetailPage({ params }: { params: Promise<{ i
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Claims History
           </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-balance text-3xl font-bold text-foreground">Claim Details</h1>
-            {getStatusBadge(claim.claim_status)}
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-balance text-3xl font-bold text-foreground">{claim.item_name}</h1>
           </div>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground mb-1">
             Claim ID: {claim.claim_id}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Claimed on{" "}
+            {new Date(claim.date_claimed).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </p>
         </div>
 
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">{claim.item_name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Processed on{" "}
-              {new Date(claim.date_claimed).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Item Details */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Package className="h-4 w-4" />
+        <div className="space-y-6">
+          {/* Item Details Card */}
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
                 Item Details
-              </h3>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   {claim.image_url && (
@@ -152,42 +148,46 @@ export default function ClaimHistoryDetailPage({ params }: { params: Promise<{ i
                       />
                     </div>
                   )}
-                  <div className="space-y-1 text-sm">
-                    <p>
-                      <span className="font-medium text-foreground">Description:</span>{" "}
-                      <span className="text-muted-foreground">{claim.item_description}</span>
-                    </p>
-                    <p>
-                      <span className="font-medium text-foreground">Category:</span>{" "}
-                      <span className="text-muted-foreground">{claim.category_name}</span>
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Location:</span>{" "}
-                      <span className="text-muted-foreground">{claim.location_name}</span>
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-foreground">Date Found:</span>{" "}
-                      <span className="text-muted-foreground">
-                        {new Date(claim.date_reported).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </p>
-                  </div>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p>
+                    <span className="font-medium text-foreground">Description:</span>{" "}
+                    <span className="text-muted-foreground">{claim.item_description}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Category:</span>{" "}
+                    <span className="text-muted-foreground">{claim.category_name}</span>
+                  </p>
+                  <p className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-foreground">Location:</span>{" "}
+                    <span className="text-muted-foreground">{claim.location_name}</span>
+                  </p>
+                  <p className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-medium text-foreground">Date Found:</span>{" "}
+                    <span className="text-muted-foreground">
+                      {new Date(claim.date_reported).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </p>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Claimant Details */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <User className="h-4 w-4" />
+          {/* Claimant Details Card */}
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
                 Claimant Details
-              </h3>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-1 text-sm">
                 <p>
                   <span className="font-medium text-foreground">Name:</span>{" "}
@@ -202,52 +202,71 @@ export default function ClaimHistoryDetailPage({ params }: { params: Promise<{ i
                   <span className="text-muted-foreground">{claim.claimant_email}</span>
                 </p>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Proof of Ownership */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Proof of Ownership
-              </h3>
-              <div className="rounded-lg border border-border bg-muted/50 p-4">
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {claim.proof_of_ownership}
-                </p>
-              </div>
-            </div>
-
-            {/* Admin Decision */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Admin Decision
-              </h3>
-              <div className="space-y-2">
-                {claim.admin_name ? (
-                  <>
-                    <p className="text-sm">
-                      <span className="font-medium text-foreground">Processed by:</span>{" "}
-                      <span className="text-muted-foreground">
-                        {claim.admin_name} ({claim.admin_id})
-                      </span>
-                    </p>
-                    {claim.admin_email && (
-                      <p className="text-sm">
-                        <span className="font-medium text-foreground">Admin Email:</span>{" "}
-                        <span className="text-muted-foreground">{claim.admin_email}</span>
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Admin information not available
+          {/* Proof of Ownership & Admin Decision Card */}
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Proof of Ownership & Admin Decision
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Proof of Ownership */}
+              <div>
+                <h3 className="font-semibold text-foreground mb-3">Proof of Ownership</h3>
+                <div className="rounded-lg border border-border bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {claim.proof_of_ownership}
                   </p>
-                )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+
+              {/* Admin Decision */}
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Admin Decision
+                  </h3>
+                  {getStatusBadge(claim.claim_status)}
+                </div>
+                {claim.rationale && (
+                  <div className="rounded-lg border border-border bg-muted/50 p-4 mb-3">
+                    <p className="text-sm font-medium text-foreground mb-1">Rationale:</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {claim.rationale}
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {claim.admin_name ? (
+                    <>
+                      <p className="text-sm">
+                        <span className="font-medium text-foreground">Processed by:</span>{" "}
+                        <span className="text-muted-foreground">
+                          {claim.admin_name} ({claim.admin_id})
+                        </span>
+                      </p>
+                      {claim.admin_email && (
+                        <p className="text-sm">
+                          <span className="font-medium text-foreground">Admin Email:</span>{" "}
+                          <span className="text-muted-foreground">{claim.admin_email}</span>
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      This claim is automatically rejected by the system. This is because an admin had approved another claim for this item.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   )

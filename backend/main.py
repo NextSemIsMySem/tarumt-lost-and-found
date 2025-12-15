@@ -10,7 +10,7 @@ import os
 import uuid
 
 # --- CONFIGURATION ---
-# Supabase DB connection string
+# Supabase DB connection string (with SSL requirement)
 DB_URL = "postgresql://postgres.egykldiebvqvecytyyva:niamajibaiez@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
 
 # Supabase Storage configuration
@@ -46,11 +46,31 @@ app.add_middleware(
 # --- DATABASE HELPER ---
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DB_URL)
+        # Supabase requires SSL connections - use connection parameters
+        # Parse the connection string and add SSL requirement
+        conn = psycopg2.connect(
+            DB_URL,
+            sslmode='require'
+        )
         return conn
+    except psycopg2.OperationalError as e:
+        error_msg = str(e)
+        print(f"Database connection failed (OperationalError): {error_msg}")
+        # Provide more specific error details
+        if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Database connection timeout - check network/firewall settings")
+        elif "could not resolve hostname" in error_msg.lower() or "name resolution" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Cannot resolve database hostname - check DNS/network connectivity")
+        elif "connection refused" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Connection refused - database server may be down or port blocked")
+        elif "ssl" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="SSL connection error - Supabase requires SSL connections")
+        else:
+            raise HTTPException(status_code=500, detail=f"Database connection error: {error_msg}")
     except Exception as e:
-        print(f"Database connection failed: {e}")
-        raise HTTPException(status_code=500, detail="Database connection error")
+        error_msg = str(e)
+        print(f"Database connection failed: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Database connection error: {error_msg}")
 
 # --- PYDANTIC MODELS (Data Validation) ---
 
@@ -72,7 +92,7 @@ class ItemCreate(BaseModel):
     category_id: str  # VARCHAR(3) format: CT%
     location_id: str  # VARCHAR(3) format: L__
     student_id: str  # VARCHAR(7) format: ST%
-    image_url: Optional[str] = None
+    image_url: str  # Required - NOT NULL in database
 
 class ClaimCreate(BaseModel):
     item_id: str  # VARCHAR(5) format: IT###
@@ -83,6 +103,7 @@ class ClaimUpdate(BaseModel):
     claim_id: str  # VARCHAR(5) format: C####
     admin_id: str  # VARCHAR(5) format: AT% - Admin processing the claim
     status: str  # 'Approved' or 'Rejected'
+    rationale: str  # Admin's rationale for approval/rejection (required for DB NOT NULL)
 
 # --- API ENDPOINTS ---
 
@@ -221,6 +242,10 @@ def report_found_item(item: ItemCreate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # Validate that image_url is provided and not empty
+        if not item.image_url or not item.image_url.strip():
+            raise HTTPException(status_code=400, detail="image_url is required and cannot be empty")
+        
         # date_reported will be set automatically by DEFAULT CURRENT_TIMESTAMP
         cur.execute(
             """
@@ -233,6 +258,8 @@ def report_found_item(item: ItemCreate):
         new_id = cur.fetchone()[0]
         conn.commit()
         return {"status": "success", "item_id": new_id}
+    except HTTPException:
+        raise
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -343,12 +370,12 @@ def submit_claim(claim: ClaimCreate):
                 detail=f"You have already submitted a claim for this item. Your previous claim status: {existing_claim[1]}"
             )
 
-        # date_claimed will be set automatically by DEFAULT CURRENT_TIMESTAMP
+        # date_claimed will be set automatically with DEFAULT CURRENT_TIMESTAMP
         # admin_id is NULL for pending claims, will be set when admin processes the claim
         cur.execute(
             """
-            INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id)
-            VALUES (%s, %s, %s, 'Pending', NULL)
+            INSERT INTO CLAIM (student_id, item_id, proof_of_ownership, claim_status, admin_id, date_claimed)
+            VALUES (%s, %s, %s, 'Pending', NULL, CURRENT_TIMESTAMP)
             RETURNING claim_id
             """,
             (claim.student_id, claim.item_id, claim.proof_of_ownership)
@@ -391,10 +418,17 @@ def get_student_claims(student_id: str):
             SELECT c.claim_id,
                    c.item_id,
                    i.item_name,
+                   i.description AS item_description,
+                   i.image_url,
                    c.date_claimed,
-                   c.claim_status
+                   c.claim_status,
+                   c.rationale,
+                   c.proof_of_ownership,
+                   a.username AS admin_name,
+                   a.email AS admin_email
             FROM CLAIM c
             JOIN ITEM i ON c.item_id = i.item_id
+            LEFT JOIN ADMIN a ON c.admin_id = a.admin_id
             WHERE c.student_id = %s
             ORDER BY c.date_claimed DESC
             """,
@@ -447,10 +481,14 @@ def process_claim(update: ClaimUpdate):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        rationale = (update.rationale or "").strip()
+        if not rationale:
+            raise HTTPException(status_code=400, detail="Rationale is required")
+
         # 1. Update Claim Status and set admin_id (admin processing the claim)
         cur.execute(
-            "UPDATE CLAIM SET claim_status = %s, admin_id = %s WHERE claim_id = %s RETURNING item_id",
-            (update.status, update.admin_id, update.claim_id)
+            "UPDATE CLAIM SET claim_status = %s, admin_id = %s, rationale = %s WHERE claim_id = %s RETURNING item_id",
+            (update.status, update.admin_id, rationale, update.claim_id)
         )
         result = cur.fetchone()
         if not result:
@@ -485,6 +523,7 @@ def get_claims_history():
                 c.proof_of_ownership,
                 c.date_claimed,
                 c.claim_status,
+                c.rationale,
                 c.admin_id,
                 i.item_id,
                 i.item_name,
