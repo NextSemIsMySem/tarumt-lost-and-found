@@ -174,15 +174,7 @@ export default function MyClaimsPage() {
                         </td>
                         <td className="py-4">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedClaim(claim)}
-                              className="gap-2"
-                            >
-                              View
-                            </Button>
-                            {claim.status !== "Approved" && (
+                            {claim.status === "Pending" && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -193,6 +185,14 @@ export default function MyClaimsPage() {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedClaim(claim)}
+                              className="gap-2"
+                            >
+                              View
+                            </Button>
                           </div>
                         </td>
                       </tr>

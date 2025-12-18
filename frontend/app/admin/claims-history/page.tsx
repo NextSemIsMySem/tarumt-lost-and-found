@@ -4,10 +4,10 @@ import { Navbar } from "@/components/navbar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, CheckCircle2, XCircle, Eye } from "lucide-react"
+import { ArrowLeft, CheckCircle2, XCircle, Eye, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { isAuthenticated, getUserInfo, getClaimsHistory, type ClaimHistory } from "@/lib/api"
+import { isAuthenticated, getUserInfo, getClaimsHistory, deleteClaim, type ClaimHistory } from "@/lib/api"
 
 export default function ClaimsHistoryPage() {
   const router = useRouter()
@@ -64,6 +64,21 @@ export default function ClaimsHistoryPage() {
 
   const handleViewDetails = (claimId: string) => {
     router.push(`/admin/claims-history/${claimId}`)
+  }
+
+  const handleDeleteClaim = async (claimId: string, itemName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the claim for "${itemName}"?\n\nThis action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      await deleteClaim(claimId)
+      setClaims((prev) => prev.filter((claim) => claim.claim_id !== claimId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete claim")
+    }
   }
 
   if (isCheckingAuth || loading) {
@@ -154,15 +169,28 @@ export default function ClaimsHistoryPage() {
                         {getStatusBadge(claim.claim_status)}
                       </td>
                       <td className="py-4 pr-6 pl-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewDetails(claim.claim_id)}
-                          className="gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {claim.claim_status === "Rejected" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClaim(claim.claim_id, claim.item_name)}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              aria-label="Delete claim"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewDetails(claim.claim_id)}
+                            className="gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
