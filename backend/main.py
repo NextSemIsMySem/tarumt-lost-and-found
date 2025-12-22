@@ -30,7 +30,6 @@ origins = [
     "http://127.0.0.1:3000",
     "http://192.168.200.53:3000",
     "http://172.17.4.120:3000",
-    "http://192.168.100.136:3000",
     "https://tarumtpenanglostandfound.onrender.com",
     "https://tarumt-lost-and-found.vercel.app/",
 ]
@@ -107,7 +106,7 @@ class ClaimUpdate(BaseModel):
     status: str  # 'Approved' or 'Rejected'
     rationale: str  # Admin's rationale for approval/rejection (required for DB NOT NULL)
 
-# --- API ENDPOINTS ---
+# ---- API ENDPOINTS ----
 
 # Handle OPTIONS requests for CORS preflight
 @app.options("/login")
