@@ -31,6 +31,7 @@ origins = [
     "http://192.168.200.53:3000",
     "http://172.17.4.120:3000",
     "http://192.168.100.136:3000",
+    "https://tarumtpenanglostandfound.onrender.com",
 ]
 
 # Enable CORS for React Frontend - Added immediately after app initialization
