@@ -32,6 +32,7 @@ origins = [
     "http://172.17.4.120:3000",
     "http://192.168.100.136:3000",
     "https://tarumtpenanglostandfound.onrender.com",
+    "https://tarumt-lost-and-found-mgdc49bl6-nextsemismysems-projects.vercel.app",
 ]
 
 # Enable CORS for React Frontend - Added immediately after app initialization
