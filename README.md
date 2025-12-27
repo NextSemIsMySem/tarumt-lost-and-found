@@ -235,3 +235,6 @@ deactivate
 ```
 
 Your terminal prompt will return to normal, and the global Python environment will be active again.
+
+## Direct link to view the claimore (lost-n-found) website
+**Link:** https://tarumt-lost-and-found.vercel.app/
